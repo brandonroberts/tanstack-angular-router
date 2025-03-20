@@ -12,6 +12,7 @@ import {
   OnChanges,
   SimpleChanges,
   ChangeDetectorRef,
+  AfterViewInit,
 } from '@angular/core';
 
 @Component({
@@ -20,7 +21,7 @@ import {
   standalone: true,
 })
 export class TanStackRouterDevtoolsComponent
-  implements OnInit, OnChanges, OnDestroy
+  implements OnInit, OnChanges, AfterViewInit, OnDestroy
 {
   @Input() initialIsOpen?: boolean;
   @Input() panelProps?: JSX.HTMLAttributes<HTMLDivElement>;
@@ -36,6 +37,7 @@ export class TanStackRouterDevtoolsComponent
 
   private devtools?: TanStackRouterDevtoolsCore;
   private cleanup?: () => void;
+  private isDevtoolsMounted = false;
 
   constructor(private ngZone: NgZone, private cdr: ChangeDetectorRef) {}
 
@@ -45,7 +47,15 @@ export class TanStackRouterDevtoolsComponent
       return;
     }
 
-    this.initializeDevtools();
+    // Delay initialization to ensure proper state
+    setTimeout(() => this.initializeDevtools(), 0);
+  }
+
+  ngAfterViewInit(): void {
+    // If not initialized in ngOnInit, try again here
+    if (!this.isDevtoolsMounted && this.router) {
+      this.initializeDevtools();
+    }
   }
 
   ngOnChanges(changes: SimpleChanges): void {
@@ -75,24 +85,32 @@ export class TanStackRouterDevtoolsComponent
   }
 
   private initializeDevtools(): void {
-    if (!this.router || !this.devToolsContainer) return;
+    if (!this.router || !this.devToolsContainer || this.isDevtoolsMounted) return;
 
     this.ngZone.runOutsideAngular(() => {
       try {
-        // Initialize with router and its state
-        this.devtools = new TanStackRouterDevtoolsCore({
-          router: this.router!,
+        // Create a clean initial options object
+        const options = {
+          router: this.router as AnyRouter,
           routerState: this.router!.state,
-        });
-
+          initialIsOpen: this.initialIsOpen,
+          panelProps: this.panelProps,
+          closeButtonProps: this.closeButtonProps,
+          toggleButtonProps: this.toggleButtonProps,
+          position: this.position,
+          containerElement: this.containerElement,
+          shadowDOMTarget: this.shadowDOMTarget,
+        };
+        
+        // Initialize with all options at once
+        this.devtools = new TanStackRouterDevtoolsCore(options);
+        
         // Set up manual router state tracking
         this.setupStateTracking();
         
-        // Update options
-        this.updateOptions();
-        
         // Mount the devtools to the DOM
         this.devtools.mount(this.devToolsContainer.nativeElement);
+        this.isDevtoolsMounted = true;
       } catch (err) {
         console.error('Failed to initialize TanStack Router DevTools:', err);
       }
@@ -179,6 +197,7 @@ export class TanStackRouterDevtoolsComponent
       this.ngZone.runOutsideAngular(() => {
         try {
           this.devtools?.unmount();
+          this.isDevtoolsMounted = false;
         } catch (err) {
           console.error('Error unmounting TanStack Router DevTools:', err);
         }
