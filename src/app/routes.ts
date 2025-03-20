@@ -14,7 +14,7 @@ import { createRouter, TANSTACK_ROUTER } from '../router';
 
 const rootRoute = new BaseRootRoute({ component: () => AppComponent });
 const homeRoute = new BaseRoute({ getParentRoute: () => rootRoute, path: '/', component: () => HomeComponent });
-const aboutRoute = new BaseRoute({ getParentRoute: () => rootRoute, path: 'about', component: () => AboutComponent });
+const aboutRoute = new BaseRoute({ getParentRoute: () => rootRoute, path: 'about', component: () => AboutComponent, loader: aboutLoader });
 const parentRoute = new BaseRoute({ getParentRoute: () => rootRoute, path: 'parent', component: () => ParentComponent });
 const childRoute = new BaseRoute({ getParentRoute: () => parentRoute, path: '$id', component: () => ChildComponent });
 
