@@ -1,6 +1,6 @@
 import { Component, inject } from '@angular/core';
 
-import { Outlet, Router } from '../router';
+import { Outlet, Router } from '@tanstack/angular-router';
 
 
 @Component({

@@ -1,8 +1,7 @@
 import { Component } from '@angular/core';
-
-import { getLoaderData } from '../router';
 import { JsonPipe } from '@angular/common';
 
+import { getLoaderData } from '@tanstack/angular-router';
 
 export const loader = async () => {
   const res = await fetch('https://jsonplaceholder.typicode.com/todos/1');

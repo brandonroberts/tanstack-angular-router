@@ -1,6 +1,6 @@
 import { Component } from '@angular/core';
 
-import { getRouteParams } from '../router';
+import { getRouteParams } from '@tanstack/angular-router';
 
 @Component({
   selector: 'child',
