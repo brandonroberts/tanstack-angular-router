@@ -19,7 +19,7 @@ import { NgIf } from '@angular/common';
 
     <outlet />
     
-    <ng-container *ngIf="routerInstance">
+   @if(routerInstance) {
       <tan-stack-router-devtools 
         [router]="routerInstance"
         [initialIsOpen]="true"
