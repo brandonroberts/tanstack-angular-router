@@ -1,7 +1,10 @@
 import {
+  computed,
   inject,
   Injectable,
   InjectionToken,
+  Signal,
+  signal,
   Type,
 } from '@angular/core';
 import {
@@ -9,7 +12,6 @@ import {
   NavigateOptions,
   AnyRouter
 } from '@tanstack/router-core';
-import { BehaviorSubject, map } from 'rxjs';
 
 export type RouteObject = {
   element: Type<any>;
@@ -42,30 +44,24 @@ export function getLoaderData<T extends object = object>() {
   const router = inject(Router);
   const context = getRouteContext();
 
-  return router.routerState$.pipe(
-    map((rs) => {
-      const route = rs.matches.find((match) => {
-        return match.routeId === context!.id;
-      });
+  return computed(() => {
+    const routerState = router.routerState();
+    const route = routerState.matches.find((match) => match.routeId === context!.id);
 
-      return ((route && route.loaderData) || {}) as T;
-    })
-  );
+    return ((route && route.loaderData) || {}) as T;
+  });
 }
 
 export function getRouteParams<T extends object = object>() {
   const router = inject(Router);
   const context = getRouteContext();
 
-  return router.routerState$.pipe(
-    map((rs) => {
-      const route = rs.matches.find((match) => {
-        return match.routeId === context!.id;
-      });
+  return computed(() => {
+    const routerState = router.routerState();
+    const route = routerState.matches.find((match) => match.routeId === context!.id);
 
-      return ((route && route.params) || {}) as T;
-    })
-  );
+    return ((route && route.params) || {}) as T;
+  });
 }
 
 @Injectable({
@@ -73,10 +69,10 @@ export function getRouteParams<T extends object = object>() {
 })
 export class Router {
   private _tanstackRouter = inject(TANSTACK_ROUTER);
-  routerState$ = new BehaviorSubject<RouterState>(this._tanstackRouter.state);
+  routerState = signal<RouterState>(this._tanstackRouter.state);
 
   constructor() {
-    this._tanstackRouter.load().then(() => this.routerState$.next(this._tanstackRouter.state));
+    this._tanstackRouter.load().then(() => this.routerState.set(this._tanstackRouter.state));
   }
   
   get state() {
@@ -85,7 +81,7 @@ export class Router {
   
   navigate(opts: NavigateOptions) {
     (this._tanstackRouter.navigate(opts as any) as Promise<void>).then(() => {
-      this.routerState$.next(this._tanstackRouter.state);
+      this.routerState.set(this._tanstackRouter.state);
     });
   }
 

@@ -22,7 +22,7 @@ export const loader = async () => {
     <!-- Action Data: {{ actionData$ | async | json }} -->
 
     <hr />
-    Loader Data: {{ loaderData$ | async | json }}
+    Loader Data: {{ loaderData() | json }}
 
     <hr />
 
@@ -37,7 +37,7 @@ export const loader = async () => {
   `,
 })
 export class AboutComponent {
-  loaderData$ = getLoaderData();
+  loaderData = getLoaderData();
   // actionData$ = getActionData();
   // router = inject(Router);
 

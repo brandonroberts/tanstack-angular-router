@@ -7,8 +7,8 @@ import { getRouteParams } from '../router';
   selector: 'child',
   standalone: true,
   imports: [CommonModule],
-  template: ` Child {{ (params$ | async)?.id }}`,
+  template: ` Child {{ params().id }}`,
 })
 export class ChildComponent {
-  params$ = getRouteParams<{ id: string }>();
+  params = getRouteParams<{ id: string }>();
 }
