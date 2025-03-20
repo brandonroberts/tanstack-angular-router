@@ -8,7 +8,7 @@ import { NgIf } from '@angular/common';
 
 @Component({
   selector: 'app-root',
-  imports: [Outlet, TanStackRouterDevtoolsComponent, NgIf],
+  imports: [Outlet, TanStackRouterDevtoolsComponent],
   template: `
     <h1>Welcome to {{title}}!</h1>
 
