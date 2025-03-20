@@ -24,7 +24,7 @@ const routeTree = rootRoute.addChildren([
   parentRoute.addChildren([childRoute]),
 ]);
 
-const router = createRouter({
+export const router = createRouter({
   routeTree
 });
 
