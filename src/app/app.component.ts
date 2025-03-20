@@ -25,7 +25,7 @@ import { NgIf } from '@angular/common';
         [initialIsOpen]="true"
         position="bottom-right"
       />
-    </ng-container>
+    }
   `,
   styles: [],
 })
