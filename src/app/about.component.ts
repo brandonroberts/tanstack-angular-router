@@ -24,7 +24,7 @@ export const loader = async () => {
     Loader Data: {{ loaderData() | json }}
 
     <hr />
-
+<!-- 
     1. Submit the form without entering a name to see the action data containing the validation message.<br>
     2. Enter a name and submit to be redirected back to home with the name in the query params.
 
@@ -32,7 +32,7 @@ export const loader = async () => {
       <div>Name: <input type="name" name="name" /></div>
 
       <button type="submit">Submit</button>
-    </form>
+    </form> -->
   `,
 })
 export class AboutComponent {
