@@ -28,7 +28,6 @@ import { NgIf } from '@angular/common';
     </ng-container>
   `,
   styles: [],
-  standalone: true,
 })
 export class AppComponent implements OnInit {
   title = 'tanstack-router-angular';
