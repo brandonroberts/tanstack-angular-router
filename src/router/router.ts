@@ -6,7 +6,7 @@ import type {
   RouterConstructorOptions,
   TrailingSlashOption,
 } from '@tanstack/router-core'
-import { Type } from '@angular/core'
+// import { Type } from '@angular/core'
 
 declare module '@tanstack/router-core' {
   export interface RouterOptionsExtensions {

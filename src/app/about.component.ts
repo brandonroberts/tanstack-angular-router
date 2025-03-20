@@ -1,7 +1,7 @@
-import { CommonModule } from '@angular/common';
-import { Component, inject } from '@angular/core';
+import { Component } from '@angular/core';
 
 import { getLoaderData } from '../router';
+import { JsonPipe } from '@angular/common';
 
 
 export const loader = async () => {
@@ -14,7 +14,7 @@ export const loader = async () => {
 @Component({
   selector: 'about',
   standalone: true,
-  imports: [CommonModule],
+  imports: [JsonPipe],
   template: `
     TanStack Routing in Angular
 
