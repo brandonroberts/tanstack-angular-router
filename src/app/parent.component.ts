@@ -9,7 +9,7 @@ import { Link, Outlet, Router } from '@tanstack/angular-router';
     Parent -
     <a link to="/parent/$id" [params]="{ id: 'child' }">Child</a> |
     <a link to="/parent/$id" [params]="{ id: '1'} ">Child 1</a> |
-    <a link to="/parent/$id" [params]="{ id: '2' }">Child 2</a>
+    <a link to="/parent/$id" [params]="{ id: '2' }" [search]="{ search: 'test' }">Child 2</a>
     <hr />
 
     <outlet />
