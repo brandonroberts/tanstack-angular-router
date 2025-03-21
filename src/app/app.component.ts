@@ -1,6 +1,6 @@
 import { Component, inject, OnInit } from '@angular/core';
 
-import { Outlet, Router } from '@tanstack/angular-router';
+import { Outlet, Link, Router } from '@tanstack/angular-router';
 import { TanStackRouterDevtoolsComponent } from '../router/router-devtools';
 import { AnyRouter } from '@tanstack/router-core';
 
@@ -8,13 +8,13 @@ import { router } from './router';
 
 @Component({
   selector: 'app-root',
-  imports: [Outlet, TanStackRouterDevtoolsComponent],
+  imports: [Outlet, TanStackRouterDevtoolsComponent, Link],
   template: `
     <h1>Welcome to {{title}}!</h1>
 
-    <a (click)="go('/')">Home</a> |
-    <a (click)="go('/about')">About</a> |
-    <a (click)="go('/parent/1')">Parent 1</a>
+    <a link to="/">Home</a> |
+    <a link to="/about">About</a> |
+    <a link to="/parent/$id" [params]="{ id: '1' }">Parent 1</a>
     <hr />
 
     <outlet />
@@ -36,9 +36,5 @@ export class AppComponent implements OnInit {
 
   ngOnInit() {
     this.routerInstance = router;
-  }
-
-  go(to: any) {
-    this.router.navigate({ to });
   }
 }

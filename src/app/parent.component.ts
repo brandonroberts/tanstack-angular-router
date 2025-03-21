@@ -1,20 +1,18 @@
 import { Component, inject } from '@angular/core';
 
-import { Outlet, Router } from '@tanstack/angular-router';
-
+import { Link, Outlet, Router } from '@tanstack/angular-router';
 
 @Component({
   selector: 'parent',
-  standalone: true,
-  imports: [Outlet],
+  imports: [Outlet, Link],
   template: `
     Parent -
-    <a (click)="child('child')">Child</a> |
-    <a (click)="child('1')">Child 1</a> |
-    <a (click)="child('2')">Child 2</a>
+    <a link to="/parent/$id" [params]="{ id: 'child' }">Child</a> |
+    <a link to="/parent/$id" [params]="{ id: '1'} ">Child 1</a> |
+    <a link to="/parent/$id" [params]="{ id: '2' }">Child 2</a>
     <hr />
 
-    <outlet></outlet>
+    <outlet />
   `,
   styles: [
     `
@@ -26,8 +24,4 @@ import { Outlet, Router } from '@tanstack/angular-router';
 })
 export class ParentComponent {
   router = inject(Router);
-
-  child(num: string) {
-    this.router.navigate(({ to: '/parent/$id', params: { id: num } }));
-  }
 }
