@@ -26,7 +26,7 @@ export class Outlet {
     effect(() => {
       const routerState = this.router.routerState();
       const hasMatches = routerState.matches.length > 0;
-      
+
       if (!hasMatches) {
         return;
       }

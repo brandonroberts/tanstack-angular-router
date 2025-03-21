@@ -58,6 +58,20 @@ export function getRouteParams<T extends object = object>() {
   });
 }
 
+
+export function getRouteSearchParams<T extends object = object>() {
+  const router = inject(Router);
+  const context = getRouteContext();
+
+  return computed(() => {
+    const routerState = router.routerState();
+    const route = routerState.matches.find((match) => match.routeId === context!.id);
+
+    return ((route && route.search) || {}) as T;
+  });
+}
+
+
 export function provideRouter(router: AnyRouter) {
   return [
     {
