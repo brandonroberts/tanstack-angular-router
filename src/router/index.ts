@@ -257,5 +257,6 @@ export type {
   ValidateUseParamsResult,
 } from '@tanstack/router-core'
 
-export * from './outlet';
+export * from './outlet'
 export * from './router';
+export * from './link';
