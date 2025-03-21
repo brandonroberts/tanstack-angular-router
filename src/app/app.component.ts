@@ -2,9 +2,9 @@ import { Component, inject, OnInit } from '@angular/core';
 
 import { Outlet, Router } from '@tanstack/angular-router';
 import { TanStackRouterDevtoolsComponent } from '../router/router-devtools';
-import { router } from './routes';
 import { AnyRouter } from '@tanstack/router-core';
-import { NgIf } from '@angular/common';
+
+import { router } from './router';
 
 @Component({
   selector: 'app-root',

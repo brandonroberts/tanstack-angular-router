@@ -11,11 +11,10 @@ import {
   getRouteContext,
   Router,
   ROUTE_CONTEXT,
-} from './router.service';
+} from './router';
 
 @Directive({
-  selector: 'outlet',
-  standalone: true,
+  selector: 'outlet'
 })
 export class Outlet {
   private cmp!: Type<any>;
@@ -34,7 +33,7 @@ export class Outlet {
 
       const matchesToRender = this.getMatch(routerState.matches.slice(1));
       const route = this.router.getRouteById(matchesToRender.routeId);
-      const currentCmp = (route && route.options.component ? route.options.component({} as any) : undefined) as Type<any>;
+      const currentCmp = (route && route.options.component ? route.options.component() : undefined) as Type<any>;
 
       if (this.cmp !== currentCmp) {
         this.vcr.clear();

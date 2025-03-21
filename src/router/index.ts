@@ -223,7 +223,7 @@ export type {
   HistoryState,
 } from '@tanstack/history'
 
-export { createRouter } from './router'
+export { createRouter } from './create-router'
 
 export {
   componentTypes,
@@ -257,5 +257,5 @@ export type {
   ValidateUseParamsResult,
 } from '@tanstack/router-core'
 
-export * from './outlet.directive'
-export * from './router.service';
+export * from './outlet';
+export * from './router';

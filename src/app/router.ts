@@ -10,7 +10,7 @@ import { ParentComponent } from './parent.component';
 import { ChildComponent } from './child.component';
 import { AppComponent } from './app.component';
 
-import { createRouter, TANSTACK_ROUTER } from '@tanstack/angular-router';
+import { createRouter } from '@tanstack/angular-router';
 
 const rootRoute = new BaseRootRoute({ component: () => AppComponent });
 const homeRoute = new BaseRoute({ getParentRoute: () => rootRoute, path: '/', component: () => HomeComponent });
@@ -27,15 +27,6 @@ const routeTree = rootRoute.addChildren([
 export const router = createRouter({
   routeTree
 });
-
-export function provideRouter() {
-  return {
-    provide: TANSTACK_ROUTER,
-    useFactory: () => {
-      return router
-    }
-  }
-}
 
 declare module '@tanstack/router-core' {
   interface Register {

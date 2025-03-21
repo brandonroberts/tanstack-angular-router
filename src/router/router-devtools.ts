@@ -17,8 +17,7 @@ import {
 
 @Component({
   selector: 'tan-stack-router-devtools',
-  template: `<div #devToolsContainer></div>`,
-  standalone: true,
+  template: `<div #devToolsContainer></div>`
 })
 export class TanStackRouterDevtoolsComponent
   implements OnInit, OnChanges, AfterViewInit, OnDestroy
