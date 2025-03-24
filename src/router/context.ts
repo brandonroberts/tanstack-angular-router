@@ -1,11 +1,12 @@
-import { Injectable, Injector } from "@angular/core";
+import { createEnvironmentInjector, EnvironmentInjector, Injectable, Injector } from "@angular/core";
 import { ROUTE_CONTEXT } from "./router";
 
 @Injectable({
   providedIn: 'root'
 })
 export class ContextService {
-  injectors = new Map<string, Injector>();
+  private readonly injectors = new Map<string, Injector>();
+  private readonly envInjectors = new Map<string, EnvironmentInjector>();
 
   private setContext(routeId: string, injector: Injector) {
     this.injectors.set(routeId, injector);
@@ -18,13 +19,26 @@ export class ContextService {
       return injector;
     }
 
-    const newInjector = this.createContext(context, parent);
+    const newInjector = this.getInjector(routeId, context, parent);
     this.setContext(routeId, newInjector);
 
     return newInjector;
   }
 
-  private createContext(context: any, parentInjector: Injector) {
+  getEnvContext(routeId: string, parent: EnvironmentInjector) {
+    const injector = this.envInjectors.get(routeId);
+
+    if (injector) {
+      return injector;
+    }
+
+    const newInjector = this.getEnvInjector(routeId, [], parent)
+    this.envInjectors.set(routeId, newInjector);
+
+    return newInjector;
+  }  
+
+  private getInjector(routeId: string, context: any, parentInjector: Injector) {
     const injector = Injector.create({
       providers: [
         {
@@ -35,9 +49,16 @@ export class ContextService {
           },
         }
       ],
-      parent: parentInjector
+      parent: parentInjector,
+      name: routeId
     });
 
     return injector;    
   }
+
+  getEnvInjector(routeId: string, providers = [], injector: EnvironmentInjector) {
+    const envInjector = createEnvironmentInjector(providers, injector, routeId);
+
+    return envInjector;
+  }  
 }

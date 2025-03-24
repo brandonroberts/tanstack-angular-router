@@ -7,7 +7,7 @@ import type {
   TrailingSlashOption,
   UpdateMatchFn,
 } from '@tanstack/router-core'
-import { inject, Injector, Provider, runInInjectionContext, signal } from '@angular/core'
+import { EnvironmentInjector, inject, Injector, Provider, runInInjectionContext, signal } from '@angular/core'
 import { Type } from '@angular/core'
 
 declare module '@tanstack/router-core' {
@@ -92,7 +92,7 @@ export class NgRouter<
   TDehydrated
 > {
   readonly routerState = signal(this.state);
-  injector = inject(Injector);
+  readonly injector = inject(EnvironmentInjector);
 
   constructor(
     options: RouterConstructorOptions<

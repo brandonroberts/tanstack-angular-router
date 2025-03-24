@@ -67,7 +67,13 @@ export function provideRouter(options: RouterConstructorOptions<AnyRoute, any, a
     {
       provide: Router,
       useFactory: () => {
-        const router = createRouter(options);
+        const router = createRouter({
+          ...options,
+          context: {
+            ...options.context,
+            injector: inject(EnvironmentInjector)
+          }
+        });
 
         return router;
       }
