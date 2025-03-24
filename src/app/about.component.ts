@@ -1,19 +1,7 @@
 import { Component } from '@angular/core';
 import { JsonPipe } from '@angular/common';
 
-import { getLoaderData, LoaderFnContext } from '@tanstack/angular-router';
-import { firstValueFrom } from 'rxjs';
-
-import { TodosService } from './todos.service';
-
-export const loader = async (ctx: unknown) => {
-  const {context} = ctx as LoaderFnContext;
-  const injector = context.injector;
-  const todosService = injector.get(TodosService);
-  const todos = await firstValueFrom(todosService.getTodo(1));
-
-  return { todos };
-};
+import { getLoaderData } from '@tanstack/angular-router';
 
 @Component({
   selector: 'about',

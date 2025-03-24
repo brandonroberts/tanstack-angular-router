@@ -11,7 +11,8 @@ import {
   Router,
 } from './router';
 import { AnyRoute } from '@tanstack/router-core';
-import { ContextService } from './context';
+
+import { context } from './context';
 
 @Directive({
   selector: 'outlet'
@@ -21,7 +22,6 @@ export class Outlet {
   private context? = getRouteContext();
   private router = inject(Router);
   private vcr = inject(ViewContainerRef);
-  private injectorContext = inject(ContextService);
 
   constructor() {
     effect(() => {
@@ -35,8 +35,8 @@ export class Outlet {
       const matchesToRender = this.getMatch(routerState.matches.slice(1));
       const route: AnyRoute = this.router.getRouteById(matchesToRender.routeId);
       const currentCmp = (route && route.options.component ? route.options.component() : undefined) as Type<any>;
-      const injector = this.injectorContext.getContext(matchesToRender.routeId, matchesToRender, this.vcr.injector);
-      const environmentInjector = this.injectorContext.getEnvContext(matchesToRender.routeId, this.router.injector);
+      const injector = context.getContext(matchesToRender.routeId, matchesToRender, this.vcr.injector);
+      const environmentInjector = context.getEnvContext(matchesToRender.routeId, route.options.providers || [], this.router.injector);
 
       if (this.cmp !== currentCmp) {
         this.vcr.clear();

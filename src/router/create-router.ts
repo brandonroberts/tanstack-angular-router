@@ -5,9 +5,8 @@ import type {
   CreateRouterFn,
   RouterConstructorOptions,
   TrailingSlashOption,
-  UpdateMatchFn,
 } from '@tanstack/router-core'
-import { EnvironmentInjector, inject, Injector, Provider, runInInjectionContext, signal } from '@angular/core'
+import { EnvironmentInjector, inject, Provider, signal } from '@angular/core'
 import { Type } from '@angular/core'
 
 declare module '@tanstack/router-core' {
