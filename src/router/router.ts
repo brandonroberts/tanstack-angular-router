@@ -3,6 +3,7 @@ import {
   EnvironmentInjector,
   inject,
   InjectionToken,
+  makeEnvironmentProviders,
   Type,
 } from '@angular/core';
 import {
@@ -62,7 +63,7 @@ export function getRouteParams<T extends object = object>() {
 }
 
 export function provideRouter(options: RouterConstructorOptions<AnyRoute, any, any, any, any>) {
-  return [
+  return makeEnvironmentProviders([
     {
       provide: Router,
       useFactory: () => {
@@ -71,7 +72,7 @@ export function provideRouter(options: RouterConstructorOptions<AnyRoute, any, a
         return router;
       }
     }
-  ]
+  ]);
 }
 
 export type TypedRouter<T extends AnyRoute> = RouterCore<T, "never", false>
