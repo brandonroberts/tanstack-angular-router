@@ -18,7 +18,7 @@ const aboutRoute = new BaseRoute({ getParentRoute: () => rootRoute, path: 'about
 const parentRoute = new BaseRoute({ getParentRoute: () => rootRoute, path: 'parent', component: () => ParentComponent });
 const childRoute = new BaseRoute({ getParentRoute: () => parentRoute, path: '$id', component: () => ChildComponent });
 
-const routeTree = rootRoute.addChildren([
+export const routeTree = rootRoute.addChildren([
   homeRoute,
   aboutRoute,
   parentRoute.addChildren([childRoute]),

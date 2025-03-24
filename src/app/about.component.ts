@@ -1,11 +1,15 @@
-import { Component } from '@angular/core';
+import { Component, inject, Injector } from '@angular/core';
 import { JsonPipe } from '@angular/common';
 
 import { getLoaderData } from '@tanstack/angular-router';
+import { firstValueFrom } from 'rxjs';
 
-export const loader = async () => {
-  const res = await fetch('https://jsonplaceholder.typicode.com/todos/1');
-  const todos = await res.json();
+import { TodosService } from './todos.service';
+
+export const loader = async (ctx: any) => {
+  const injector: Injector = ctx.route.options.context.injector;
+  const todosService = injector.get(TodosService);
+  const todos = await firstValueFrom(todosService.getTodo(1));
 
   return { todos };
 };
@@ -39,6 +43,7 @@ export class AboutComponent {
   loaderData = getLoaderData();
   // actionData$ = getActionData();
   // router = inject(Router);
+  todosService = inject(TodosService);
 
   onSubmit($event: any) {
     $event.preventDefault();

@@ -1,5 +1,6 @@
 import {
   computed,
+  EnvironmentInjector,
   inject,
   InjectionToken,
   Type,
@@ -18,6 +19,7 @@ export type RouteObject = {
 export interface RouteContext extends RouteContextCore {
   id: string;
   params: any;
+  injector: EnvironmentInjector
 }
 
 export const Router = new InjectionToken<NgRouter<any, any, any, any, any>>('@tanstack/angular-router');
@@ -63,6 +65,11 @@ export function provideRouter(router: AnyRouter) {
     {
       provide: Router,
       useFactory: () => {
+        router.update({
+          context: {
+            injector: inject(EnvironmentInjector)
+          }
+        });
         return router
       }
     }

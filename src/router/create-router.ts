@@ -6,12 +6,14 @@ import type {
   RouterConstructorOptions,
   TrailingSlashOption,
 } from '@tanstack/router-core'
-import { signal } from '@angular/core'
+import { Provider, signal } from '@angular/core'
 import { Type } from '@angular/core'
 
 declare module '@tanstack/router-core' {
   export interface UpdatableRouteOptionsExtensions {
     component: () => Type<any>
+
+    providers?: Provider[]
   }
   export interface RouterOptionsExtensions {
     /**
@@ -100,7 +102,7 @@ export class NgRouter<
     >,
   ) {
     super(options)
-    this.load();
+    this.load({ sync: true });
     this.__store.subscribe(() => {
       this.routerState.set(this.state);
     })
