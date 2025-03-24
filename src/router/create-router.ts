@@ -5,8 +5,9 @@ import type {
   CreateRouterFn,
   RouterConstructorOptions,
   TrailingSlashOption,
+  UpdateMatchFn,
 } from '@tanstack/router-core'
-import { Provider, signal } from '@angular/core'
+import { inject, Injector, Provider, runInInjectionContext, signal } from '@angular/core'
 import { Type } from '@angular/core'
 
 declare module '@tanstack/router-core' {
@@ -91,6 +92,7 @@ export class NgRouter<
   TDehydrated
 > {
   readonly routerState = signal(this.state);
+  injector = inject(Injector);
 
   constructor(
     options: RouterConstructorOptions<
@@ -101,7 +103,7 @@ export class NgRouter<
       TDehydrated
     >,
   ) {
-    super(options)
+    super(options);
     this.load({ sync: true });
     this.__store.subscribe(() => {
       this.routerState.set(this.state);
@@ -110,5 +112,5 @@ export class NgRouter<
 
   getRouteById(routeId: string) {
     return this.routesById[routeId];
-  }  
+  }
 }

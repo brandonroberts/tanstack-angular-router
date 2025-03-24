@@ -9,8 +9,7 @@ import { HomeComponent } from './home.component';
 import { ParentComponent } from './parent.component';
 import { ChildComponent } from './child.component';
 import { AppComponent } from './app.component';
-
-import { createRouter } from '@tanstack/angular-router';
+import { TypedRouter } from '@tanstack/angular-router';
 
 const rootRoute = new BaseRootRoute({ component: () => AppComponent });
 const homeRoute = new BaseRoute({ getParentRoute: () => rootRoute, path: '/', component: () => HomeComponent });
@@ -24,13 +23,11 @@ export const routeTree = rootRoute.addChildren([
   parentRoute.addChildren([childRoute]),
 ]);
 
-export const router = createRouter({
-  routeTree
-});
+export type router = TypedRouter<typeof routeTree>;
 
 declare module '@tanstack/router-core' {
   interface Register {
     // This infers the type of our router and registers it across your entire project
-    router: typeof router
+    router: router
   }
 }

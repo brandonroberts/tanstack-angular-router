@@ -4,8 +4,6 @@ import { Outlet, Link, Router } from '@tanstack/angular-router';
 import { TanStackRouterDevtoolsComponent } from '../router/router-devtools';
 import { AnyRouter } from '@tanstack/router-core';
 
-import { router } from './router';
-
 @Component({
   selector: 'app-root',
   imports: [Outlet, TanStackRouterDevtoolsComponent, Link],
@@ -35,6 +33,6 @@ export class AppComponent implements OnInit {
   routerInstance: AnyRouter | null = null;
 
   ngOnInit() {
-    this.routerInstance = router;
+    this.routerInstance = this.router;
   }
 }

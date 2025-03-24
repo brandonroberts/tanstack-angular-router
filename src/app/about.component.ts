@@ -1,4 +1,4 @@
-import { Component, inject, Injector } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { JsonPipe } from '@angular/common';
 
 import { getLoaderData } from '@tanstack/angular-router';
@@ -6,9 +6,8 @@ import { firstValueFrom } from 'rxjs';
 
 import { TodosService } from './todos.service';
 
-export const loader = async (ctx: any) => {
-  const injector: Injector = ctx.route.options.context.injector;
-  const todosService = injector.get(TodosService);
+export const loader = async (ctx: unknown) => {
+  const todosService = inject(TodosService);
   const todos = await firstValueFrom(todosService.getTodo(1));
 
   return { todos };
@@ -43,7 +42,7 @@ export class AboutComponent {
   loaderData = getLoaderData();
   // actionData$ = getActionData();
   // router = inject(Router);
-  todosService = inject(TodosService);
+  // todosService = inject(TodosService);
 
   onSubmit($event: any) {
     $event.preventDefault();

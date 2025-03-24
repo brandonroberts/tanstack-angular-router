@@ -6,10 +6,11 @@ import {
   Type,
 } from '@angular/core';
 import {
-  AnyRouter,
-  RouteContext as RouteContextCore
-} from '@tanstack/router-core';
-import { NgRouter } from './create-router';
+  AnyRoute,
+  RouteContext as RouteContextCore,
+  RouterConstructorOptions,
+  RouterCore} from '@tanstack/router-core';
+import { createRouter, NgRouter } from './create-router';
 
 export type RouteObject = {
   element: Type<any>;
@@ -60,18 +61,17 @@ export function getRouteParams<T extends object = object>() {
   });
 }
 
-export function provideRouter(router: AnyRouter) {
+export function provideRouter(options: RouterConstructorOptions<AnyRoute, any, any, any, any>) {
   return [
     {
       provide: Router,
       useFactory: () => {
-        router.update({
-          context: {
-            injector: inject(EnvironmentInjector)
-          }
-        });
-        return router
+        const router = createRouter(options);
+
+        return router;
       }
     }
   ]
 }
+
+export type TypedRouter<T extends AnyRoute> = RouterCore<T, "never", false>
