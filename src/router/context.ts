@@ -1,5 +1,10 @@
-import { createEnvironmentInjector, EnvironmentInjector, Injector, Provider } from "@angular/core";
-import { ROUTE_CONTEXT } from "./router";
+import {
+  createEnvironmentInjector,
+  EnvironmentInjector,
+  Injector,
+  Provider,
+} from '@angular/core';
+import { ROUTE_CONTEXT } from './router';
 
 export class ContextService {
   private readonly injectors = new Map<string, Injector>();
@@ -22,14 +27,18 @@ export class ContextService {
     return newInjector;
   }
 
-  getEnvContext(routeId: string, providers: Provider[], parent: EnvironmentInjector) {
+  getEnvContext(
+    routeId: string,
+    providers: Provider[],
+    parent: EnvironmentInjector
+  ) {
     const injector = this.envInjectors.get(routeId);
 
     if (injector) {
       return injector;
     }
 
-    const newInjector = this.getEnvInjector(routeId, providers, parent)
+    const newInjector = this.getEnvInjector(routeId, providers, parent);
     this.envInjectors.set(routeId, newInjector);
 
     return newInjector;
@@ -44,16 +53,20 @@ export class ContextService {
             id: context.routeId,
             params: context.params,
           },
-        }
+        },
       ],
       parent: parentInjector,
-      name: routeId
+      name: routeId,
     });
 
     return injector;
   }
 
-  getEnvInjector(routeId: string, providers: Provider[] = [], injector: EnvironmentInjector) {
+  getEnvInjector(
+    routeId: string,
+    providers: Provider[] = [],
+    injector: EnvironmentInjector
+  ) {
     const envInjector = createEnvironmentInjector(providers, injector, routeId);
 
     return envInjector;

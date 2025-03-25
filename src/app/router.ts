@@ -1,4 +1,3 @@
-
 import { TypedRouter } from '@tanstack/angular-router';
 
 import { Route as HomeRoute } from './home.component';
@@ -18,6 +17,6 @@ export type router = TypedRouter<typeof routeTree>;
 declare module '@tanstack/router-core' {
   interface Register {
     // This infers the type of our router and registers it across your entire project
-    router: router
+    router: router;
   }
 }

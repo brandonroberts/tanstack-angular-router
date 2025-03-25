@@ -11,15 +11,17 @@ export const Route = createRoute({
   path: 'about',
   component: () => AboutComponent,
   loader: ({ context, route }) => {
-    const routeInjector = (context as { getRouteInjector: Function }).getRouteInjector(route.id);
+    const routeInjector = (
+      context as { getRouteInjector: Function }
+    ).getRouteInjector(route.id);
 
-    return runInInjectionContext(routeInjector, async() => {
+    return runInInjectionContext(routeInjector, async () => {
       const todosService = inject(TodosService);
       const todos = await firstValueFrom(todosService.getTodo(1));
 
       return { todos };
     });
-  }
+  },
 });
 
 @Component({

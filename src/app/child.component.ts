@@ -4,7 +4,11 @@ import { createRoute } from '@tanstack/angular-router';
 
 import { Route as ParentRoute } from './parent.component';
 
-export const Route = createRoute({ getParentRoute: () => ParentRoute, path: '$id', component: () => ChildComponent });
+export const Route = createRoute({
+  getParentRoute: () => ParentRoute,
+  path: '$id',
+  component: () => ChildComponent,
+});
 
 @Component({
   selector: 'child',

@@ -1,5 +1,5 @@
-export { default as invariant } from 'tiny-invariant'
-export { default as warning } from 'tiny-warning'
+export { default as invariant } from 'tiny-invariant';
+export { default as warning } from 'tiny-warning';
 
 export {
   defer,
@@ -35,7 +35,7 @@ export {
   createControlledPromise,
   retainSearchParams,
   stripSearchParams,
-} from '@tanstack/router-core'
+} from '@tanstack/router-core';
 
 export type {
   StartSerializer,
@@ -206,14 +206,14 @@ export type {
   ControllablePromise,
   InjectedHtmlEntry,
   RouterErrorSerializer,
-} from '@tanstack/router-core'
+} from '@tanstack/router-core';
 
 export {
   createHistory,
   createBrowserHistory,
   createHashHistory,
   createMemoryHistory,
-} from '@tanstack/history'
+} from '@tanstack/history';
 
 export type {
   BlockerFn,
@@ -221,9 +221,9 @@ export type {
   RouterHistory,
   ParsedPath,
   HistoryState,
-} from '@tanstack/history'
+} from '@tanstack/history';
 
-export { createRouter } from './create-router'
+export { createRouter } from './create-router';
 
 export {
   componentTypes,
@@ -231,10 +231,10 @@ export {
   SearchParamError,
   PathParamError,
   getInitialRouterState,
-} from '@tanstack/router-core'
+} from '@tanstack/router-core';
 
-export { notFound, isNotFound } from '@tanstack/router-core'
-export type { NotFoundError } from '@tanstack/router-core'
+export { notFound, isNotFound } from '@tanstack/router-core';
+export type { NotFoundError } from '@tanstack/router-core';
 
 export type {
   ValidateFromPath,
@@ -255,9 +255,9 @@ export type {
   InferSelected,
   ValidateUseSearchResult,
   ValidateUseParamsResult,
-} from '@tanstack/router-core'
+} from '@tanstack/router-core';
 
-export * from './outlet'
+export * from './outlet';
 export * from './router';
 export * from './link';
 export * from './context';

@@ -1,8 +1,5 @@
 import { computed, inject, Signal } from '@angular/core';
-import {
-  BaseRootRoute,
-  BaseRoute,
-} from '@tanstack/router-core'
+import { BaseRootRoute, BaseRoute } from '@tanstack/router-core';
 import type {
   AnyContext,
   AnyRoute,
@@ -16,7 +13,7 @@ import type {
   RouteConstraints,
   RouteOptions,
   UseParamsResult,
-} from '@tanstack/router-core'
+} from '@tanstack/router-core';
 import { injectRouteContext, Router } from './router';
 
 class Route<
@@ -71,23 +68,25 @@ class Route<
       TRouterContext,
       TRouteContextFn,
       TBeforeLoadFn
-    >,
+    >
   ) {
-    super(options)
+    super(options);
   }
 
   getLoaderData<
     TRouter extends AnyRouter = RegisteredRouter,
-    const TFrom extends string | undefined = undefined
+    const TFrom extends string | undefined = undefined,
   >(): Signal<ResolveUseLoaderData<TRouter, TFrom, false>> {
     const router = inject(Router);
     const context = injectRouteContext();
-  
+
     return computed(() => {
       const routerState = router.routerState();
-      const route = routerState.matches.find((match) => match.routeId === context!.id);
-  
-      return ((route && route.loaderData) || {});
+      const route = routerState.matches.find(
+        (match) => match.routeId === context!.id
+      );
+
+      return (route && route.loaderData) || {};
     });
   }
 
@@ -99,12 +98,14 @@ class Route<
   >(): Signal<UseParamsResult<TRouter, TFrom, TStrict, TSelected>> {
     const router = inject(Router);
     const context = injectRouteContext();
-  
+
     return computed(() => {
       const routerState = router.routerState();
-      const route = routerState.matches.find((match) => match.routeId === context!.id);
-  
-      return ((route && route.params) || {});
+      const route = routerState.matches.find(
+        (match) => match.routeId === context!.id
+      );
+
+      return (route && route.params) || {};
     });
   }
 }
@@ -143,7 +144,7 @@ export function createRoute<
     AnyContext,
     TRouteContextFn,
     TBeforeLoadFn
-  >,
+  >
 ): Route<
   TParentRoute,
   TPath,
@@ -173,7 +174,7 @@ export function createRoute<
     TLoaderDeps,
     TLoaderFn,
     TChildren
-  >(options)
+  >(options);
 }
 
 class RootRoute<
@@ -203,9 +204,9 @@ class RootRoute<
       TBeforeLoadFn,
       TLoaderDeps,
       TLoaderFn
-    >,
+    >
   ) {
-    super(options)
+    super(options);
   }
 }
 
@@ -224,7 +225,7 @@ export function createRootRoute<
     TBeforeLoadFn,
     TLoaderDeps,
     TLoaderFn
-  >,
+  >
 ): RootRoute<
   TSearchValidator,
   TRouterContext,
@@ -242,12 +243,10 @@ export function createRootRoute<
     TBeforeLoadFn,
     TLoaderDeps,
     TLoaderFn
-  >(options)
+  >(options);
 }
 
-
-export type AnyRootRoute = RootRoute<any, any, any, any, any, any, any, any>
-
+export type AnyRootRoute = RootRoute<any, any, any, any, any, any, any, any>;
 
 export class NotFoundRoute<
   TParentRoute extends AnyRootRoute,
@@ -295,11 +294,11 @@ export class NotFoundRoute<
       | 'path'
       | 'id'
       | 'params'
-    >,
+    >
   ) {
     super({
       ...(options as any),
       id: '404',
-    })
+    });
   }
 }
