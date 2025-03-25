@@ -1,4 +1,11 @@
-import { computed, runInInjectionContext, Signal } from '@angular/core';
+import {
+  assertInInjectionContext,
+  computed,
+  inject,
+  Injector,
+  runInInjectionContext,
+  Signal,
+} from '@angular/core';
 import type {
   AnyContext,
   AnyRoute,
@@ -73,39 +80,59 @@ class Route<
     super(options);
   }
 
-  getLoaderData<
+  loaderData<
     TRouter extends AnyRouter = RegisteredRouter,
     const TFrom extends string | undefined = undefined,
-  >(): Signal<ResolveUseLoaderData<TRouter, TFrom, false>> {
-    const router = injectRouter();
-    const context = injectRouteContext();
+  >({ injector }: { injector?: Injector } = {}): Signal<
+    ResolveUseLoaderData<TRouter, TFrom, false>
+  > {
+    !injector && assertInInjectionContext(this.loaderData);
 
-    return computed(() => {
-      const routerState = router.routerState();
-      const route = routerState.matches.find(
-        (match) => match.routeId === context!.id
-      );
+    if (!injector) {
+      injector = inject(Injector);
+    }
 
-      return (route && route.loaderData) || {};
+    return runInInjectionContext(injector, () => {
+      const router = injectRouter();
+      const context = injectRouteContext();
+
+      return computed(() => {
+        const routerState = router.routerState();
+        const route = routerState.matches.find(
+          (match) => match.routeId === context!.id
+        );
+
+        return (route && route.loaderData) || {};
+      });
     });
   }
 
-  getRouteParams<
+  routeParams<
     TRouter extends AnyRouter = RegisteredRouter,
     const TFrom extends string | undefined = undefined,
     TStrict extends boolean = false,
     TSelected = unknown,
-  >(): Signal<UseParamsResult<TRouter, TFrom, TStrict, TSelected>> {
-    const router = injectRouter();
-    const context = injectRouteContext();
+  >({ injector }: { injector?: Injector } = {}): Signal<
+    UseParamsResult<TRouter, TFrom, TStrict, TSelected>
+  > {
+    !injector && assertInInjectionContext(this.routeParams);
 
-    return computed(() => {
-      const routerState = router.routerState();
-      const route = routerState.matches.find(
-        (match) => match.routeId === context!.id
-      );
+    if (!injector) {
+      injector = inject(Injector);
+    }
 
-      return (route && route.params) || {};
+    return runInInjectionContext(injector, () => {
+      const router = injectRouter();
+      const context = injectRouteContext();
+
+      return computed(() => {
+        const routerState = router.routerState();
+        const route = routerState.matches.find(
+          (match) => match.routeId === context!.id
+        );
+
+        return (route && route.params) || {};
+      });
     });
   }
 }
@@ -194,7 +221,7 @@ export function createRoute<
 
 class RootRoute<
   in out TSearchValidator = undefined,
-  in out TRouterContext = {},
+  in out TRouterContext extends Record<string, any> = {},
   in out TRouteContextFn = AnyContext,
   in out TBeforeLoadFn = AnyContext,
   in out TLoaderDeps extends Record<string, any> = {},
@@ -221,13 +248,27 @@ class RootRoute<
       TLoaderFn
     >
   ) {
+    if (options?.loader) {
+      const originalLoader = options.loader;
+      options.loader = (...args: Parameters<typeof originalLoader>) => {
+        const { context, route } = args[0];
+        const routeInjector = (
+          context as RouterContext<TRouterContext>
+        ).getRouteInjector(route.id);
+        return runInInjectionContext(
+          routeInjector,
+          originalLoader.bind(null, ...args)
+        );
+      };
+    }
+
     super(options);
   }
 }
 
 export function createRootRoute<
   TSearchValidator = undefined,
-  TRouterContext = {},
+  TRouterContext extends Record<string, any> = {},
   TRouteContextFn = AnyContext,
   TBeforeLoadFn = AnyContext,
   TLoaderDeps extends Record<string, any> = {},
