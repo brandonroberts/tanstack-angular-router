@@ -7,7 +7,7 @@ import {
 } from '@angular/core';
 
 import { AnyRoute } from '@tanstack/router-core';
-import { injectRouteContext, Router } from './router';
+import { injectRouteContext, injectRouter } from './router';
 
 import { context } from './context';
 
@@ -17,7 +17,7 @@ import { context } from './context';
 export class Outlet {
   private cmp!: Type<any>;
   private context? = injectRouteContext();
-  private router = inject(Router);
+  private router = injectRouter();
   private vcr = inject(ViewContainerRef);
 
   constructor() {

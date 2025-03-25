@@ -1,4 +1,4 @@
-import { computed, inject, runInInjectionContext, Signal } from '@angular/core';
+import { computed, runInInjectionContext, Signal } from '@angular/core';
 import type {
   AnyContext,
   AnyRoute,
@@ -14,7 +14,7 @@ import type {
   UseParamsResult,
 } from '@tanstack/router-core';
 import { BaseRootRoute, BaseRoute } from '@tanstack/router-core';
-import { injectRouteContext, Router, RouterContext } from './router';
+import { injectRouteContext, injectRouter, RouterContext } from './router';
 
 class Route<
   in out TParentRoute extends RouteConstraints['TParentRoute'] = AnyRoute,
@@ -77,7 +77,7 @@ class Route<
     TRouter extends AnyRouter = RegisteredRouter,
     const TFrom extends string | undefined = undefined,
   >(): Signal<ResolveUseLoaderData<TRouter, TFrom, false>> {
-    const router = inject(Router);
+    const router = injectRouter();
     const context = injectRouteContext();
 
     return computed(() => {
@@ -96,7 +96,7 @@ class Route<
     TStrict extends boolean = false,
     TSelected = unknown,
   >(): Signal<UseParamsResult<TRouter, TFrom, TStrict, TSelected>> {
-    const router = inject(Router);
+    const router = injectRouter();
     const context = injectRouteContext();
 
     return computed(() => {
