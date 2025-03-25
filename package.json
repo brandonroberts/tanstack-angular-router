@@ -40,13 +40,17 @@
     "karma-coverage": "~2.2.0",
     "karma-jasmine": "~5.1.0",
     "karma-jasmine-html-reporter": "~2.1.0",
-    "prettier": "3.5.3",
+    "prettier": "^3.5.3",
+    "prettier-plugin-organize-imports": "^4.1.0",
     "typescript": "~5.7.2"
   },
   "prettier": {
     "trailingComma": "es5",
     "tabWidth": 2,
     "semi": true,
-    "singleQuote": true
+    "singleQuote": true,
+    "plugins": [
+      "prettier-plugin-organize-imports"
+    ]
   }
 }

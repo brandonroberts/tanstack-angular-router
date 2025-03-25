@@ -1,7 +1,5 @@
-import { Component, inject, OnInit } from '@angular/core';
-
-import { Outlet, Link, Router, AnyRouter } from '@tanstack/angular-router';
-
+import { Component } from '@angular/core';
+import { injectRouter, Link, Outlet } from '@tanstack/angular-router';
 import { TanStackRouterDevtoolsComponent } from '../router/router-devtools';
 
 @Component({
@@ -16,9 +14,9 @@ import { TanStackRouterDevtoolsComponent } from '../router/router-devtools';
 
     <outlet />
 
-    @if (routerInstance) {
+    @if (router) {
       <tan-stack-router-devtools
-        [router]="routerInstance"
+        [router]="router"
         [initialIsOpen]="true"
         position="bottom-right"
       />
@@ -26,12 +24,7 @@ import { TanStackRouterDevtoolsComponent } from '../router/router-devtools';
   `,
   styles: [],
 })
-export class AppComponent implements OnInit {
+export class AppComponent {
   title = 'tanstack-router-angular';
-  router = inject(Router);
-  routerInstance: AnyRouter | null = null;
-
-  ngOnInit() {
-    this.routerInstance = this.router;
-  }
+  router = injectRouter();
 }

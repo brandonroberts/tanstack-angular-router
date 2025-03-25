@@ -1,7 +1,6 @@
-import { computed, Directive, inject, input } from '@angular/core';
+import { computed, Directive, input } from '@angular/core';
 import { NavigateOptions } from '@tanstack/router-core';
-
-import { Router } from './router';
+import { injectRouter } from './router';
 
 @Directive({
   selector: 'a[link]',
@@ -17,7 +16,7 @@ export class Link {
   search = input<NavigateOptions['search']>();
   hash = input<NavigateOptions['hash']>();
   options = input<NavigateOptions>();
-  router = inject(Router);
+  router = injectRouter();
   private navigateOptions = computed(() => {
     const options: NavigateOptions = {
       to: this.to(),

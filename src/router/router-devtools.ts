@@ -1,19 +1,19 @@
-import { TanStackRouterDevtoolsCore } from '@tanstack/router-devtools-core';
-import type { AnyRouter } from '@tanstack/router-core';
-import type { JSX } from 'solid-js';
 import {
+  AfterViewInit,
+  ChangeDetectorRef,
   Component,
-  Input,
-  OnInit,
-  OnDestroy,
   ElementRef,
-  ViewChild,
+  Input,
   NgZone,
   OnChanges,
+  OnDestroy,
+  OnInit,
   SimpleChanges,
-  ChangeDetectorRef,
-  AfterViewInit,
+  ViewChild,
 } from '@angular/core';
+import type { AnyRouter } from '@tanstack/router-core';
+import { TanStackRouterDevtoolsCore } from '@tanstack/router-devtools-core';
+import type { JSX } from 'solid-js';
 
 @Component({
   selector: 'tan-stack-router-devtools',
