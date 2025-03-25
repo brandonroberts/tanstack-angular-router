@@ -189,17 +189,15 @@ export function createRoute<
   TChildren
 > {
   if (options.loader) {
-    const originalLoader = options.loader;
-    options.loader = (...args: Parameters<typeof originalLoader>) => {
-      const { context, route } = args[0];
-      const routeInjector = (
-        context as RouterContext<TRouterContext>
-      ).getRouteInjector(route.id);
-      return runInInjectionContext(
-        routeInjector,
-        originalLoader.bind(null, ...args)
-      );
-    };
+    options.loader = runFnInInjectionContext(options.loader);
+  }
+
+  if (options.shouldReload && typeof options.shouldReload === 'function') {
+    options.shouldReload = runFnInInjectionContext(options.shouldReload);
+  }
+
+  if (options.beforeLoad) {
+    options.beforeLoad = runFnInInjectionContext(options.beforeLoad);
   }
 
   return new Route<
@@ -292,6 +290,18 @@ export function createRootRoute<
   unknown,
   unknown
 > {
+  if (options?.loader) {
+    options.loader = runFnInInjectionContext(options.loader);
+  }
+
+  if (options?.shouldReload && typeof options.shouldReload === 'function') {
+    options.shouldReload = runFnInInjectionContext(options.shouldReload);
+  }
+
+  if (options?.beforeLoad) {
+    options.beforeLoad = runFnInInjectionContext(options.beforeLoad);
+  }
+
   return new RootRoute<
     TSearchValidator,
     TRouterContext,
@@ -357,4 +367,13 @@ export class NotFoundRoute<
       id: '404',
     });
   }
+}
+
+function runFnInInjectionContext<TFn extends (...args: any[]) => any>(fn: TFn) {
+  const originalFn = fn;
+  return (...args: Parameters<TFn>) => {
+    const { context, route } = args[0];
+    const routeInjector = context.getRouteInjector(route.id);
+    return runInInjectionContext(routeInjector, originalFn.bind(null, ...args));
+  };
 }

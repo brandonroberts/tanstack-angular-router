@@ -1,24 +1,25 @@
 import {
+  ComponentRef,
+  DestroyRef,
   Directive,
   effect,
   inject,
   Type,
   ViewContainerRef,
 } from '@angular/core';
-
-import { AnyRoute } from '@tanstack/router-core';
-import { injectRouteContext, injectRouter } from './router';
+import { AnyRoute, RouterState } from '@tanstack/router-core';
 
 import { context } from './context';
+import { injectRouteContext, injectRouter } from './router';
 
-@Directive({
-  selector: 'outlet',
-})
+@Directive({ selector: 'outlet', exportAs: 'outlet' })
 export class Outlet {
-  private cmp!: Type<any>;
   private context? = injectRouteContext();
   private router = injectRouter();
   private vcr = inject(ViewContainerRef);
+
+  private cmp: Type<any> | null = null;
+  private cmpRef: ComponentRef<any> | null = null;
 
   constructor() {
     effect(() => {
@@ -47,19 +48,25 @@ export class Outlet {
 
       if (this.cmp !== currentCmp) {
         this.vcr.clear();
-        this.vcr.createComponent(currentCmp, {
+        this.cmpRef = this.vcr.createComponent(currentCmp, {
           injector,
           environmentInjector,
         });
         this.cmp = currentCmp;
+      } else {
+        this.cmpRef?.changeDetectorRef.markForCheck();
       }
+    });
+
+    inject(DestroyRef).onDestroy(() => {
+      this.vcr.clear();
+      this.cmp = null;
+      this.cmpRef = null;
     });
   }
 
-  getMatch(matches: any[]): any {
+  getMatch(matches: RouterState['matches']) {
     const idx = matches.findIndex((match) => match.id === this.context?.id);
-    const matchesToRender = matches[idx + 1];
-
-    return matchesToRender;
+    return matches[idx + 1];
   }
 }
