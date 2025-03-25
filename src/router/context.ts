@@ -1,4 +1,4 @@
-import { createEnvironmentInjector, EnvironmentInjector, Injectable, Injector, Provider } from "@angular/core";
+import { createEnvironmentInjector, EnvironmentInjector, Injector, Provider } from "@angular/core";
 import { ROUTE_CONTEXT } from "./router";
 
 export class ContextService {

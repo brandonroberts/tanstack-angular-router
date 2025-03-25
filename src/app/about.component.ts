@@ -11,7 +11,7 @@ export const Route = createRoute({
   path: 'about',
   component: () => AboutComponent,
   loader: ({ context, route }) => {
-    const routeInjector = (context as any).getRouteInjector(route.id);
+    const routeInjector = (context as { getRouteInjector: Function }).getRouteInjector(route.id);
 
     return runInInjectionContext(routeInjector, async() => {
       const todosService = inject(TodosService);

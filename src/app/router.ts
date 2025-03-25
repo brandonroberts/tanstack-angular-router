@@ -1,13 +1,11 @@
 
-import { createRoute, TypedRouter } from '@tanstack/angular-router';
+import { TypedRouter } from '@tanstack/angular-router';
 
-import { HomeComponent } from './home.component';
+import { Route as HomeRoute } from './home.component';
 import { Route as ParentRoute } from './parent.component';
 import { Route as ChildRoute } from './child.component';
 import { Route as RootRoute } from './root.route';
 import { Route as AboutRoute } from './about.component';
-
-const HomeRoute = createRoute({ getParentRoute: () => RootRoute, path: '/', component: () => HomeComponent });
 
 export const routeTree = RootRoute.addChildren([
   HomeRoute,
