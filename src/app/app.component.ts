@@ -8,8 +8,8 @@ import { TanStackRouterDevtoolsComponent } from '../router/router-devtools';
   template: `
     <h1>Welcome to {{ title }}!</h1>
 
-    <a link to="/">Home</a> | <a link to="/about">About</a> |
-    <a link to="/parent/$id" [params]="{ id: '1' }">Parent 1</a>
+    <a link="/">Home</a> | <a link="/about">About</a> |
+    <a [link]="{ to: '/parent/$id', params: { id: '1' } }">Parent 1</a>
     <hr />
 
     <outlet />

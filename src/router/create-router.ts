@@ -108,7 +108,8 @@ export class NgRouter<
     >
   ) {
     super(options);
-    this.load({ sync: true });
+
+    void this.load({ sync: true });
     this.__store.subscribe(() => this.routerState.set(this.state));
     this.history.subscribe(() => this.load());
   }
