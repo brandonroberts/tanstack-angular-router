@@ -6,8 +6,8 @@ import {
   ViewContainerRef,
 } from '@angular/core';
 
-import { injectRouteContext, Router } from './router';
 import { AnyRoute } from '@tanstack/router-core';
+import { injectRouteContext, Router } from './router';
 
 import { context } from './context';
 

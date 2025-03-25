@@ -1,6 +1,11 @@
-import { Component, inject } from '@angular/core';
+import { Component } from '@angular/core';
 
-import { createRoute, Link, Outlet, Router } from '@tanstack/angular-router';
+import {
+  createRoute,
+  injectRouter,
+  Link,
+  Outlet,
+} from '@tanstack/angular-router';
 
 import { Route as RootRoute } from './root.route';
 
@@ -31,5 +36,5 @@ export const Route = createRoute({
   ],
 })
 export class ParentComponent {
-  router = inject(Router);
+  router = injectRouter();
 }

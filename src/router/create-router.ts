@@ -1,4 +1,10 @@
-import { RouterCore } from '@tanstack/router-core';
+import {
+  EnvironmentInjector,
+  inject,
+  Provider,
+  signal,
+  Type,
+} from '@angular/core';
 import type { RouterHistory } from '@tanstack/history';
 import type {
   AnyRoute,
@@ -6,8 +12,7 @@ import type {
   RouterConstructorOptions,
   TrailingSlashOption,
 } from '@tanstack/router-core';
-import { EnvironmentInjector, inject, Provider, signal } from '@angular/core';
-import { Type } from '@angular/core';
+import { RouterCore } from '@tanstack/router-core';
 
 declare module '@tanstack/router-core' {
   export interface UpdatableRouteOptionsExtensions {
