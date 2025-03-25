@@ -3,13 +3,6 @@ import { JsonPipe } from '@angular/common';
 
 import { getLoaderData } from '@tanstack/angular-router';
 
-export const loader = async () => {
-  const res = await fetch('https://jsonplaceholder.typicode.com/todos/1');
-  const todos = await res.json();
-
-  return { todos };
-};
-
 @Component({
   selector: 'about',
   standalone: true,
@@ -39,6 +32,7 @@ export class AboutComponent {
   loaderData = getLoaderData();
   // actionData$ = getActionData();
   // router = inject(Router);
+  // todosService = inject(TodosService);
 
   onSubmit($event: any) {
     $event.preventDefault();

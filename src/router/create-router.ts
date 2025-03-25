@@ -6,12 +6,14 @@ import type {
   RouterConstructorOptions,
   TrailingSlashOption,
 } from '@tanstack/router-core'
-import { signal } from '@angular/core'
+import { EnvironmentInjector, inject, Provider, signal } from '@angular/core'
 import { Type } from '@angular/core'
 
 declare module '@tanstack/router-core' {
   export interface UpdatableRouteOptionsExtensions {
     component: () => Type<any>
+
+    providers?: Provider[]
   }
   export interface RouterOptionsExtensions {
     /**
@@ -89,6 +91,7 @@ export class NgRouter<
   TDehydrated
 > {
   readonly routerState = signal(this.state);
+  readonly injector = inject(EnvironmentInjector);
 
   constructor(
     options: RouterConstructorOptions<
@@ -99,8 +102,8 @@ export class NgRouter<
       TDehydrated
     >,
   ) {
-    super(options)
-    this.load();
+    super(options);
+    this.load({ sync: true });
     this.__store.subscribe(() => {
       this.routerState.set(this.state);
     })
@@ -108,5 +111,5 @@ export class NgRouter<
 
   getRouteById(routeId: string) {
     return this.routesById[routeId];
-  }  
+  }
 }

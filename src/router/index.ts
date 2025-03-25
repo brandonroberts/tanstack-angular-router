@@ -260,3 +260,5 @@ export type {
 export * from './outlet'
 export * from './router';
 export * from './link';
+export * from './context';
+export * from './route-context';

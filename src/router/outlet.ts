@@ -2,7 +2,6 @@ import {
   Directive,
   effect,
   inject,
-  Injector,
   Type,
   ViewContainerRef,
 } from '@angular/core';
@@ -10,8 +9,10 @@ import {
 import {
   getRouteContext,
   Router,
-  ROUTE_CONTEXT,
 } from './router';
+import { AnyRoute } from '@tanstack/router-core';
+
+import { context } from './context';
 
 @Directive({
   selector: 'outlet'
@@ -32,34 +33,20 @@ export class Outlet {
       }
 
       const matchesToRender = this.getMatch(routerState.matches.slice(1));
-      const route = this.router.getRouteById(matchesToRender.routeId);
+      const route: AnyRoute = this.router.getRouteById(matchesToRender.routeId);
       const currentCmp = (route && route.options.component ? route.options.component() : undefined) as Type<any>;
+      const injector = context.getContext(matchesToRender.routeId, matchesToRender, this.vcr.injector);
+      const environmentInjector = context.getEnvContext(matchesToRender.routeId, route.options.providers || [], this.router.injector);
 
       if (this.cmp !== currentCmp) {
         this.vcr.clear();
         this.vcr.createComponent(currentCmp, {
-          injector: this.getInjector(matchesToRender),
+          injector,
+          environmentInjector,
         });
         this.cmp = currentCmp;
       }
     });
-  }
-
-  getInjector(matchesToRender: any) {
-    const injector = Injector.create({
-      providers: [
-        {
-          provide: ROUTE_CONTEXT,
-          useValue: {
-            id: matchesToRender.routeId,
-            params: matchesToRender.params,
-          },
-        },
-      ],
-      parent: this.vcr.injector,
-    });
-
-    return injector;
   }
 
   getMatch(matches: any[]): any {

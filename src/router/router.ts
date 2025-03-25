@@ -1,14 +1,19 @@
 import {
   computed,
+  EnvironmentInjector,
   inject,
   InjectionToken,
+  makeEnvironmentProviders,
+  Provider,
   Type,
 } from '@angular/core';
 import {
-  AnyRouter,
-  RouteContext as RouteContextCore
-} from '@tanstack/router-core';
-import { NgRouter } from './create-router';
+  AnyRoute,
+  RouteContext as RouteContextCore,
+  RouterConstructorOptions,
+  RouterCore} from '@tanstack/router-core';
+import { createRouter, NgRouter } from './create-router';
+import { context } from './context';
 
 export type RouteObject = {
   element: Type<any>;
@@ -18,6 +23,7 @@ export type RouteObject = {
 export interface RouteContext extends RouteContextCore {
   id: string;
   params: any;
+  injector: EnvironmentInjector
 }
 
 export const Router = new InjectionToken<NgRouter<any, any, any, any, any>>('@tanstack/angular-router');
@@ -58,13 +64,26 @@ export function getRouteParams<T extends object = object>() {
   });
 }
 
-export function provideRouter(router: AnyRouter) {
-  return [
+export function provideRouter(options: RouterConstructorOptions<AnyRoute, any, any, any, any>) {
+  return makeEnvironmentProviders([
     {
       provide: Router,
       useFactory: () => {
-        return router
+        const injector = inject(EnvironmentInjector);
+        const router = createRouter({
+          ...options,
+          context: {
+            ...options.context,
+            getRouteInjector(routeId: string, providers: Provider[] = []) {
+              return context.getEnvContext(routeId, providers, injector);
+            }
+          }
+        });
+
+        return router;
       }
     }
-  ]
+  ]);
 }
+
+export type TypedRouter<T extends AnyRoute> = RouterCore<T, "never", false>

@@ -1,6 +1,7 @@
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 
 import { getRouteParams } from '@tanstack/angular-router';
+import { TodosService } from './todos.service';
 
 @Component({
   selector: 'child',
@@ -8,4 +9,5 @@ import { getRouteParams } from '@tanstack/angular-router';
 })
 export class ChildComponent {
   params = getRouteParams<{ id: string }>();
+  // todosService = inject(TodosService);
 }
