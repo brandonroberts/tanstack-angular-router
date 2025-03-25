@@ -4,32 +4,27 @@ import { injectRouter } from './router';
 
 @Directive({
   selector: 'a[link]',
+  exportAs: 'link',
   host: {
     '(click)': 'navigate($event)',
-    '[attr.href]': '_href()',
+    '[attr.href]': 'hostHref()',
   },
 })
 export class Link {
-  to = input<NavigateOptions['to']>();
-  from = input<NavigateOptions['from']>();
-  params = input<NavigateOptions['params']>();
-  search = input<NavigateOptions['search']>();
-  hash = input<NavigateOptions['hash']>();
-  options = input<NavigateOptions>();
-  router = injectRouter();
-  private navigateOptions = computed(() => {
-    const options: NavigateOptions = {
-      to: this.to(),
-      from: this.from(),
-      params: this.params(),
-      search: this.search(),
-      hash: this.hash(),
-      ...this.options(),
-    };
+  toOptions = input.required<
+    | (Omit<NavigateOptions, 'to'> & { to: NonNullable<NavigateOptions['to']> })
+    | NonNullable<NavigateOptions['to']>
+  >({ alias: 'link' });
 
-    return options;
+  router = injectRouter();
+
+  private navigateOptions = computed(() => {
+    const to = this.toOptions();
+    if (typeof to === 'object') return to;
+    return { to };
   });
-  _href = computed(
+
+  protected hostHref = computed(
     () => this.router.buildLocation(this.navigateOptions()).href
   );
 
