@@ -108,10 +108,10 @@ export class NgRouter<
     >
   ) {
     super(options);
+
     void this.load({ sync: true });
-    this.__store.subscribe(() => {
-      this.routerState.set(this.state);
-    });
+    this.__store.subscribe(() => this.routerState.set(this.state));
+    this.history.subscribe(() => this.load());
   }
 
   getRouteById(routeId: string) {
