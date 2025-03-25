@@ -31,5 +31,5 @@ export const Route = createRoute({
   `,
 })
 export class AboutComponent {
-  loaderData = Route.getLoaderData();
+  loaderData = Route.loaderData();
 }

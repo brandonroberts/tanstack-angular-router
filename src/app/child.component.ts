@@ -15,5 +15,5 @@ export const Route = createRoute({
   template: ` Child {{ params().id }}`,
 })
 export class ChildComponent {
-  params = Route.getRouteParams();
+  params = Route.routeParams();
 }
