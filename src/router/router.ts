@@ -2,6 +2,7 @@ import {
   EnvironmentInjector,
   inject,
   InjectionToken,
+  Injector,
   makeEnvironmentProviders,
   Provider,
   Type,
@@ -12,8 +13,8 @@ import {
   RouterConstructorOptions,
   RouterCore,
 } from '@tanstack/router-core';
-import { createRouter, NgRouter } from './create-router';
 import { context } from './context';
+import { createRouter, NgRouter } from './create-router';
 
 export type RouteObject = {
   element: Type<any>;
@@ -31,10 +32,8 @@ export const Router = new InjectionToken<NgRouter<any, any, any, any, any>>(
 
 export const ROUTE_CONTEXT = new InjectionToken<RouteContext>('Route Context');
 
-export function getRouter() {
-  const router = inject(Router);
-
-  return router;
+export function injectRouter() {
+  return inject(Router);
 }
 
 export function injectRouteContext() {
@@ -49,7 +48,7 @@ export function provideRouter(
       provide: Router,
       useFactory: () => {
         const injector = inject(EnvironmentInjector);
-        const router = createRouter({
+        return createRouter({
           ...options,
           context: {
             ...options.context,
@@ -58,11 +57,12 @@ export function provideRouter(
             },
           },
         });
-
-        return router;
       },
     },
   ]);
 }
 
 export type TypedRouter<T extends AnyRoute> = RouterCore<T, 'never', false>;
+export type RouterContext<T extends Record<string, any>> = T & {
+  getRouteInjector: (routeId: string, providers?: Provider[]) => Injector;
+};

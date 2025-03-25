@@ -1,5 +1,4 @@
-import { computed, inject, Signal } from '@angular/core';
-import { BaseRootRoute, BaseRoute } from '@tanstack/router-core';
+import { computed, inject, runInInjectionContext, Signal } from '@angular/core';
 import type {
   AnyContext,
   AnyRoute,
@@ -14,7 +13,8 @@ import type {
   RouteOptions,
   UseParamsResult,
 } from '@tanstack/router-core';
-import { injectRouteContext, Router } from './router';
+import { BaseRootRoute, BaseRoute } from '@tanstack/router-core';
+import { injectRouteContext, Router, RouterContext } from './router';
 
 class Route<
   in out TParentRoute extends RouteConstraints['TParentRoute'] = AnyRoute,
@@ -129,6 +129,7 @@ export function createRoute<
   TBeforeLoadFn = AnyContext,
   TLoaderDeps extends Record<string, any> = {},
   TLoaderFn = undefined,
+  TRouterContext extends Record<string, any> = AnyContext,
   TChildren = unknown,
 >(
   options: RouteOptions<
@@ -141,7 +142,7 @@ export function createRoute<
     TParams,
     TLoaderDeps,
     TLoaderFn,
-    AnyContext,
+    RouterContext<TRouterContext>,
     TRouteContextFn,
     TBeforeLoadFn
   >
@@ -153,13 +154,27 @@ export function createRoute<
   TId,
   TSearchValidator,
   TParams,
-  AnyContext,
+  RouterContext<TRouterContext>,
   TRouteContextFn,
   TBeforeLoadFn,
   TLoaderDeps,
   TLoaderFn,
   TChildren
 > {
+  if (options.loader) {
+    const originalLoader = options.loader;
+    options.loader = (...args: Parameters<typeof originalLoader>) => {
+      const { context, route } = args[0];
+      const routeInjector = (
+        context as RouterContext<TRouterContext>
+      ).getRouteInjector(route.id);
+      return runInInjectionContext(
+        routeInjector,
+        originalLoader.bind(null, ...args)
+      );
+    };
+  }
+
   return new Route<
     TParentRoute,
     TPath,
@@ -168,7 +183,7 @@ export function createRoute<
     TId,
     TSearchValidator,
     TParams,
-    AnyContext,
+    RouterContext<TRouterContext>,
     TRouteContextFn,
     TBeforeLoadFn,
     TLoaderDeps,
