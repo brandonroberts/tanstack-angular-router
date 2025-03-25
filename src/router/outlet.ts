@@ -7,7 +7,11 @@ import {
   Type,
   ViewContainerRef,
 } from '@angular/core';
-import { AnyRoute, RouterState } from '@tanstack/router-core';
+import {
+  AnyRoute,
+  getLocationChangeInfo,
+  RouterState,
+} from '@tanstack/router-core';
 
 import { context } from './context';
 import { injectRouteContext, injectRouter } from './router';
@@ -53,6 +57,10 @@ export class Outlet {
           environmentInjector,
         });
         this.cmp = currentCmp;
+        this.router.emit({
+          type: 'onResolved',
+          ...getLocationChangeInfo(routerState),
+        });
       } else {
         this.cmpRef?.changeDetectorRef.markForCheck();
       }
