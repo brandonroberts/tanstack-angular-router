@@ -1,5 +1,4 @@
 import {
-  computed,
   EnvironmentInjector,
   inject,
   InjectionToken,
@@ -11,7 +10,8 @@ import {
   AnyRoute,
   RouteContext as RouteContextCore,
   RouterConstructorOptions,
-  RouterCore} from '@tanstack/router-core';
+  RouterCore,
+} from '@tanstack/router-core';
 import { createRouter, NgRouter } from './create-router';
 import { context } from './context';
 
@@ -23,10 +23,11 @@ export type RouteObject = {
 export interface RouteContext extends RouteContextCore {
   id: string;
   params: any;
-  injector: EnvironmentInjector
 }
 
-export const Router = new InjectionToken<NgRouter<any, any, any, any, any>>('@tanstack/angular-router');
+export const Router = new InjectionToken<NgRouter<any, any, any, any, any>>(
+  '@tanstack/angular-router'
+);
 
 export const ROUTE_CONTEXT = new InjectionToken<RouteContext>('Route Context');
 
@@ -36,35 +37,13 @@ export function getRouter() {
   return router;
 }
 
-export function getRouteContext() {
+export function injectRouteContext() {
   return inject(ROUTE_CONTEXT, { optional: true, skipSelf: true });
 }
 
-export function getLoaderData<T extends object = object>() {
-  const router = inject(Router);
-  const context = getRouteContext();
-
-  return computed(() => {
-    const routerState = router.routerState();
-    const route = routerState.matches.find((match) => match.routeId === context!.id);
-
-    return ((route && route.loaderData) || {}) as T;
-  });
-}
-
-export function getRouteParams<T extends object = object>() {
-  const router = inject(Router);
-  const context = getRouteContext();
-
-  return computed(() => {
-    const routerState = router.routerState();
-    const route = routerState.matches.find((match) => match.routeId === context!.id);
-
-    return ((route && route.params) || {}) as T;
-  });
-}
-
-export function provideRouter(options: RouterConstructorOptions<AnyRoute, any, any, any, any>) {
+export function provideRouter(
+  options: RouterConstructorOptions<AnyRoute, any, any, any, any>
+) {
   return makeEnvironmentProviders([
     {
       provide: Router,
@@ -76,14 +55,14 @@ export function provideRouter(options: RouterConstructorOptions<AnyRoute, any, a
             ...options.context,
             getRouteInjector(routeId: string, providers: Provider[] = []) {
               return context.getEnvContext(routeId, providers, injector);
-            }
-          }
+            },
+          },
         });
 
         return router;
-      }
-    }
+      },
+    },
   ]);
 }
 
-export type TypedRouter<T extends AnyRoute> = RouterCore<T, "never", false>
+export type TypedRouter<T extends AnyRoute> = RouterCore<T, 'never', false>;

@@ -1,24 +1,23 @@
 import { Component, inject, OnInit } from '@angular/core';
 
-import { Outlet, Link, Router } from '@tanstack/angular-router';
+import { Outlet, Link, Router, AnyRouter } from '@tanstack/angular-router';
+
 import { TanStackRouterDevtoolsComponent } from '../router/router-devtools';
-import { AnyRouter } from '@tanstack/router-core';
 
 @Component({
   selector: 'app-root',
   imports: [Outlet, TanStackRouterDevtoolsComponent, Link],
   template: `
-    <h1>Welcome to {{title}}!</h1>
+    <h1>Welcome to {{ title }}!</h1>
 
-    <a link to="/">Home</a> |
-    <a link to="/about">About</a> |
+    <a link to="/">Home</a> | <a link to="/about">About</a> |
     <a link to="/parent/$id" [params]="{ id: '1' }">Parent 1</a>
     <hr />
 
     <outlet />
-    
-   @if(routerInstance) {
-      <tan-stack-router-devtools 
+
+    @if (routerInstance) {
+      <tan-stack-router-devtools
         [router]="routerInstance"
         [initialIsOpen]="true"
         position="bottom-right"

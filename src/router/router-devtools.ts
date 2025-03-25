@@ -17,7 +17,7 @@ import {
 
 @Component({
   selector: 'tan-stack-router-devtools',
-  template: `<div #devToolsContainer></div>`
+  template: `<div #devToolsContainer></div>`,
 })
 export class TanStackRouterDevtoolsComponent
   implements OnInit, OnChanges, AfterViewInit, OnDestroy
@@ -38,7 +38,10 @@ export class TanStackRouterDevtoolsComponent
   private cleanup?: () => void;
   private isDevtoolsMounted = false;
 
-  constructor(private ngZone: NgZone, private cdr: ChangeDetectorRef) {}
+  constructor(
+    private ngZone: NgZone,
+    private cdr: ChangeDetectorRef
+  ) {}
 
   ngOnInit(): void {
     if (!this.router) {
@@ -64,19 +67,19 @@ export class TanStackRouterDevtoolsComponent
       }
       return;
     }
-    
+
     if (changes['router'] && this.router) {
       this.updateRouter();
     }
-    
+
     // Update options if any of them changed
     if (
-      changes['initialIsOpen'] || 
-      changes['panelProps'] || 
-      changes['closeButtonProps'] || 
-      changes['toggleButtonProps'] || 
-      changes['position'] || 
-      changes['containerElement'] || 
+      changes['initialIsOpen'] ||
+      changes['panelProps'] ||
+      changes['closeButtonProps'] ||
+      changes['toggleButtonProps'] ||
+      changes['position'] ||
+      changes['containerElement'] ||
       changes['shadowDOMTarget']
     ) {
       this.updateOptions();
@@ -84,7 +87,8 @@ export class TanStackRouterDevtoolsComponent
   }
 
   private initializeDevtools(): void {
-    if (!this.router || !this.devToolsContainer || this.isDevtoolsMounted) return;
+    if (!this.router || !this.devToolsContainer || this.isDevtoolsMounted)
+      return;
 
     this.ngZone.runOutsideAngular(() => {
       try {
@@ -100,13 +104,13 @@ export class TanStackRouterDevtoolsComponent
           containerElement: this.containerElement,
           shadowDOMTarget: this.shadowDOMTarget,
         };
-        
+
         // Initialize with all options at once
         this.devtools = new TanStackRouterDevtoolsCore(options);
-        
+
         // Set up manual router state tracking
         this.setupStateTracking();
-        
+
         // Mount the devtools to the DOM
         this.devtools.mount(this.devToolsContainer.nativeElement);
         this.isDevtoolsMounted = true;
@@ -123,37 +127,37 @@ export class TanStackRouterDevtoolsComponent
     // since Angular's router state doesn't have a subscribe method
     const checkInterval = 100; // ms
     let previousState = this.router.state;
-    
+
     const intervalId = setInterval(() => {
       if (this.router && this.devtools) {
         const currentState = this.router.state;
-        
+
         // If state reference has changed
         if (currentState !== previousState) {
           previousState = currentState;
-          
+
           this.ngZone.runOutsideAngular(() => {
             this.devtools?.setRouterState(currentState);
           });
         }
       }
     }, checkInterval);
-    
+
     // Store cleanup function
     this.cleanup = () => clearInterval(intervalId);
   }
 
   private updateRouter(): void {
     if (!this.devtools || !this.router) return;
-    
+
     this.ngZone.runOutsideAngular(() => {
       try {
         // Update router reference
         this.devtools?.setRouter(this.router as AnyRouter);
-        
+
         // Update router state
         this.devtools?.setRouterState(this.router!.state);
-        
+
         // Reset state tracking
         if (this.cleanup) {
           this.cleanup();
@@ -167,7 +171,7 @@ export class TanStackRouterDevtoolsComponent
 
   private updateOptions(): void {
     if (!this.devtools) return;
-    
+
     this.ngZone.runOutsideAngular(() => {
       try {
         this.devtools?.setOptions({
@@ -190,7 +194,7 @@ export class TanStackRouterDevtoolsComponent
     if (this.cleanup) {
       this.cleanup();
     }
-    
+
     // Unmount devtools
     if (this.devtools) {
       this.ngZone.runOutsideAngular(() => {

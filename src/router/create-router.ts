@@ -1,19 +1,19 @@
-import { RouterCore } from '@tanstack/router-core'
-import type { RouterHistory } from '@tanstack/history'
+import { RouterCore } from '@tanstack/router-core';
+import type { RouterHistory } from '@tanstack/history';
 import type {
   AnyRoute,
   CreateRouterFn,
   RouterConstructorOptions,
   TrailingSlashOption,
-} from '@tanstack/router-core'
-import { EnvironmentInjector, inject, Provider, signal } from '@angular/core'
-import { Type } from '@angular/core'
+} from '@tanstack/router-core';
+import { EnvironmentInjector, inject, Provider, signal } from '@angular/core';
+import { Type } from '@angular/core';
 
 declare module '@tanstack/router-core' {
   export interface UpdatableRouteOptionsExtensions {
-    component: () => Type<any>
+    component: () => Type<any>;
 
-    providers?: Provider[]
+    providers?: Provider[];
   }
   export interface RouterOptionsExtensions {
     /**
@@ -69,13 +69,13 @@ declare module '@tanstack/router-core' {
      * @link [API Docs](https://tanstack.com/router/latest/docs/framework/react/api/router/RouterOptionsType#defaultoncatch-property)
      * @link [Guide](https://tanstack.com/router/latest/docs/framework/react/guide/data-loading#handling-errors-with-routeoptionsoncatch)
      */
-    defaultOnCatch?: (error: Error) => void
+    defaultOnCatch?: (error: Error) => void;
   }
 }
 
 export const createRouter: CreateRouterFn = (options) => {
-  return new NgRouter(options)
-}
+  return new NgRouter(options);
+};
 
 export class NgRouter<
   in out TRouteTree extends AnyRoute,
@@ -100,13 +100,13 @@ export class NgRouter<
       TDefaultStructuralSharingOption,
       TRouterHistory,
       TDehydrated
-    >,
+    >
   ) {
     super(options);
     this.load({ sync: true });
     this.__store.subscribe(() => {
       this.routerState.set(this.state);
-    })
+    });
   }
 
   getRouteById(routeId: string) {

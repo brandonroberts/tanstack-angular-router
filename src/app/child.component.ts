@@ -1,13 +1,19 @@
-import { Component, inject } from '@angular/core';
+import { Component } from '@angular/core';
 
-import { getRouteParams } from '@tanstack/angular-router';
-import { TodosService } from './todos.service';
+import { createRoute } from '@tanstack/angular-router';
+
+import { Route as ParentRoute } from './parent.component';
+
+export const Route = createRoute({
+  getParentRoute: () => ParentRoute,
+  path: '$id',
+  component: () => ChildComponent,
+});
 
 @Component({
   selector: 'child',
   template: ` Child {{ params().id }}`,
 })
 export class ChildComponent {
-  params = getRouteParams<{ id: string }>();
-  // todosService = inject(TodosService);
+  params = Route.getRouteParams();
 }

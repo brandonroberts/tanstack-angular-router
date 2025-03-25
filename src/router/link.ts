@@ -1,14 +1,14 @@
-import { computed, Directive, inject, input } from "@angular/core";
-import { NavigateOptions } from "@tanstack/router-core";
+import { computed, Directive, inject, input } from '@angular/core';
+import { NavigateOptions } from '@tanstack/router-core';
 
-import { Router } from "./router";
+import { Router } from './router';
 
 @Directive({
   selector: 'a[link]',
   host: {
     '(click)': 'navigate($event)',
-    '[attr.href]': '_href()'
-  }
+    '[attr.href]': '_href()',
+  },
 })
 export class Link {
   to = input<NavigateOptions['to']>();
@@ -25,12 +25,14 @@ export class Link {
       params: this.params(),
       search: this.search(),
       hash: this.hash(),
-      ...this.options()
+      ...this.options(),
     };
 
     return options;
   });
-  _href = computed(() => this.router.buildLocation(this.navigateOptions()).href);
+  _href = computed(
+    () => this.router.buildLocation(this.navigateOptions()).href
+  );
 
   navigate($event: Event) {
     $event.preventDefault();
