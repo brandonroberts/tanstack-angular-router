@@ -1,45 +1,18 @@
-import { BaseRootRoute, BaseRoute } from '@tanstack/router-core';
 
-import {
-  AboutComponent,
-  // action as aboutAction,
-} from './about.component';
+import { createRoute, TypedRouter } from '@tanstack/angular-router';
+
 import { HomeComponent } from './home.component';
-import { ParentComponent } from './parent.component';
-import { ChildComponent } from './child.component';
-import { AppComponent } from './app.component';
-import { TypedRouter, context as injectorContexts } from '@tanstack/angular-router';
-import { createEnvironmentInjector, runInInjectionContext, inject, EnvironmentInjector } from '@angular/core';
-import { firstValueFrom } from 'rxjs';
-import { TodosService } from './todos.service';
+import { Route as ParentRoute } from './parent.component';
+import { Route as ChildRoute } from './child.component';
+import { Route as RootRoute } from './root.route';
+import { Route as AboutRoute } from './about.component';
 
+const HomeRoute = createRoute({ getParentRoute: () => RootRoute, path: '/', component: () => HomeComponent });
 
-const rootRoute = new BaseRootRoute({ component: () => AppComponent });
-const homeRoute = new BaseRoute({ getParentRoute: () => rootRoute, path: '/', component: () => HomeComponent });
-
-const aboutRoute = new BaseRoute({
-  getParentRoute: () => rootRoute,
-  path: 'about',
-  component: () => AboutComponent,
-  loader: ({ context, route }) => {
-    const routeInjector = (context as any).getRouteInjector(route.id);
-
-    return runInInjectionContext(routeInjector, async() => {
-      const todosService = inject(TodosService);
-      const todos = await firstValueFrom(todosService.getTodo(1));
-
-      return { todos };
-    });
-  }
-});
-
-const parentRoute = new BaseRoute({ getParentRoute: () => rootRoute, path: 'parent', component: () => ParentComponent });
-const childRoute = new BaseRoute({ getParentRoute: () => parentRoute, path: '$id', component: () => ChildComponent });
-
-export const routeTree = rootRoute.addChildren([
-  homeRoute,
-  aboutRoute,
-  parentRoute.addChildren([childRoute]),
+export const routeTree = RootRoute.addChildren([
+  HomeRoute,
+  AboutRoute,
+  ParentRoute.addChildren([ChildRoute]),
 ]);
 
 export type router = TypedRouter<typeof routeTree>;

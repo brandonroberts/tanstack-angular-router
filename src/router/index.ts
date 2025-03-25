@@ -262,3 +262,4 @@ export * from './router';
 export * from './link';
 export * from './context';
 export * from './route-context';
+export * from './route';

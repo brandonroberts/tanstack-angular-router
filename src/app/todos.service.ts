@@ -8,6 +8,6 @@ export class TodosService {
   private http = inject(HttpClient);
 
   getTodo(id: number) {
-    return this.http.get(`https://jsonplaceholder.typicode.com/todos/${id}`);
+    return this.http.get<{ id: string }>(`https://jsonplaceholder.typicode.com/todos/${id}`);
   }
 }

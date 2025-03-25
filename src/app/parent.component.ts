@@ -1,6 +1,10 @@
 import { Component, inject } from '@angular/core';
 
-import { Link, Outlet, Router } from '@tanstack/angular-router';
+import { createRoute, Link, Outlet, Router } from '@tanstack/angular-router';
+
+import { Route as RootRoute } from './root.route';
+
+export const Route = createRoute({ getParentRoute: () => RootRoute, path: 'parent', component: () => ParentComponent });
 
 @Component({
   selector: 'parent',

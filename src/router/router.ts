@@ -36,32 +36,8 @@ export function getRouter() {
   return router;
 }
 
-export function getRouteContext() {
+export function injectRouteContext() {
   return inject(ROUTE_CONTEXT, { optional: true, skipSelf: true });
-}
-
-export function getLoaderData<T extends object = object>() {
-  const router = inject(Router);
-  const context = getRouteContext();
-
-  return computed(() => {
-    const routerState = router.routerState();
-    const route = routerState.matches.find((match) => match.routeId === context!.id);
-
-    return ((route && route.loaderData) || {}) as T;
-  });
-}
-
-export function getRouteParams<T extends object = object>() {
-  const router = inject(Router);
-  const context = getRouteContext();
-
-  return computed(() => {
-    const routerState = router.routerState();
-    const route = routerState.matches.find((match) => match.routeId === context!.id);
-
-    return ((route && route.params) || {}) as T;
-  });
 }
 
 export function provideRouter(options: RouterConstructorOptions<AnyRoute, any, any, any, any>) {
@@ -86,4 +62,4 @@ export function provideRouter(options: RouterConstructorOptions<AnyRoute, any, a
   ]);
 }
 
-export type TypedRouter<T extends AnyRoute> = RouterCore<T, "never", false>
+export type TypedRouter<T extends AnyRoute> = RouterCore<T, "never", false>;

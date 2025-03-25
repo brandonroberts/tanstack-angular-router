@@ -1,7 +1,26 @@
-import { Component } from '@angular/core';
+import { Component, inject, runInInjectionContext } from '@angular/core';
 import { JsonPipe } from '@angular/common';
+import { createRoute } from '@tanstack/angular-router';
+import { firstValueFrom } from 'rxjs';
 
-import { getLoaderData } from '@tanstack/angular-router';
+import { TodosService } from './todos.service';
+import { Route as RootRoute } from './root.route';
+
+export const Route = createRoute({
+  getParentRoute: () => RootRoute,
+  path: 'about',
+  component: () => AboutComponent,
+  loader: ({ context, route }) => {
+    const routeInjector = (context as any).getRouteInjector(route.id);
+
+    return runInInjectionContext(routeInjector, async() => {
+      const todosService = inject(TodosService);
+      const todos = await firstValueFrom(todosService.getTodo(1));
+
+      return { todos };
+    });
+  }
+});
 
 @Component({
   selector: 'about',
@@ -11,36 +30,11 @@ import { getLoaderData } from '@tanstack/angular-router';
     TanStack Routing in Angular
 
     <hr />
-    <!-- Action Data: {{ actionData$ | async | json }} -->
-
-    <hr />
     Loader Data: {{ loaderData() | json }}
 
     <hr />
-<!-- 
-    1. Submit the form without entering a name to see the action data containing the validation message.<br>
-    2. Enter a name and submit to be redirected back to home with the name in the query params.
-
-    <form novalidate (submit)="onSubmit($event)">
-      <div>Name: <input type="name" name="name" /></div>
-
-      <button type="submit">Submit</button>
-    </form> -->
   `,
 })
 export class AboutComponent {
-  loaderData = getLoaderData();
-  // actionData$ = getActionData();
-  // router = inject(Router);
-  // todosService = inject(TodosService);
-
-  onSubmit($event: any) {
-    $event.preventDefault();
-
-    // this.router.navigate({ to: '/about' });
-    // this.router.getRoute("/about").action.submit({
-    //   test: 1
-    // } as any)
-    // router.navigate({ to: "/about" });
-  }
+  loaderData = Route.getLoaderData();
 }
