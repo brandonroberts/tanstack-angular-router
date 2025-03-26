@@ -16,8 +16,7 @@ import { RouterCore } from '@tanstack/router-core';
 
 declare module '@tanstack/router-core' {
   export interface UpdatableRouteOptionsExtensions {
-    component: () => Type<any>;
-
+    component?: () => Type<any>;
     providers?: Provider[];
   }
   export interface RouterOptionsExtensions {

@@ -14,6 +14,7 @@ import {
   BaseRoute,
   BaseRouteApi,
   ConstrainLiteral,
+  LazyRouteOptions,
   RegisteredRouter,
   ResolveFullPath,
   ResolveId,
@@ -21,13 +22,17 @@ import {
   ResolveUseLoaderData,
   ResolveUseParams,
   RootRouteOptions,
+  RouteById,
   RouteConstraints,
   RouteIds,
   RouteOptions,
 } from '@tanstack/router-core';
 import { injectRouteContext, injectRouter, RouterContext } from './router';
 
-function loaderData({ injector }: { injector?: Injector } = {}) {
+function loaderData({
+  id,
+  injector,
+}: { id?: string; injector?: Injector } = {}) {
   !injector && assertInInjectionContext(loaderData);
 
   if (!injector) {
@@ -36,12 +41,16 @@ function loaderData({ injector }: { injector?: Injector } = {}) {
 
   return runInInjectionContext(injector, () => {
     const router = injectRouter();
-    const context = injectRouteContext();
+    const routeId = id ?? injectRouteContext()?.id;
+
+    if (!routeId) {
+      throw new Error('routeId is required');
+    }
 
     return computed(() => {
       const routerState = router.routerState();
       const route = routerState.matches.find(
-        (match) => match.routeId === context!.id
+        (match) => match.routeId === routeId
       );
 
       return (route && route.loaderData) || {};
@@ -49,7 +58,10 @@ function loaderData({ injector }: { injector?: Injector } = {}) {
   });
 }
 
-function routeParams({ injector }: { injector?: Injector } = {}) {
+function routeParams({
+  id,
+  injector,
+}: { id?: string; injector?: Injector } = {}) {
   !injector && assertInInjectionContext(routeParams);
 
   if (!injector) {
@@ -58,12 +70,16 @@ function routeParams({ injector }: { injector?: Injector } = {}) {
 
   return runInInjectionContext(injector, () => {
     const router = injectRouter();
-    const context = injectRouteContext();
+    const routeId = id ?? injectRouteContext()?.id;
+
+    if (!routeId) {
+      throw new Error('routeId is required');
+    }
 
     return computed(() => {
       const routerState = router.routerState();
       const route = routerState.matches.find(
-        (match) => match.routeId === context!.id
+        (match) => match.routeId === routeId
       );
 
       return (route && route.params) || {};
@@ -90,8 +106,8 @@ export function routeApi<
     injector = inject(Injector);
   }
 
-  const _loaderData = loaderData.bind(null, { injector });
-  const _routeParams = routeParams.bind(null, { injector });
+  const _loaderData = loaderData.bind(null, { id, injector });
+  const _routeParams = routeParams.bind(null, { id, injector });
 
   return runInInjectionContext(injector, () => {
     const routeApi = new BaseRouteApi<TId, TRouter>({ id });
@@ -166,7 +182,7 @@ class Route<
   >({ injector }: { injector?: Injector } = {}): Signal<
     ResolveUseLoaderData<TRouter, TFrom, false>
   > {
-    return loaderData({ injector });
+    return loaderData({ id: this.id, injector });
   }
 
   routeParams<
@@ -176,7 +192,7 @@ class Route<
   >({ injector }: { injector?: Injector } = {}): Signal<
     ResolveUseParams<TRouter, TFrom, TStrict>
   > {
-    return routeParams({ injector });
+    return routeParams({ id: this.id, injector });
   }
 }
 
@@ -258,6 +274,38 @@ export function createRoute<
     TLoaderFn,
     TChildren
   >(options);
+}
+
+export class LazyRoute<TRoute extends AnyRoute> {
+  constructor(
+    public readonly options: LazyRouteOptions & { id: TRoute['id'] }
+  ) {}
+
+  loaderData<TRouter extends AnyRouter = RegisteredRouter>({
+    injector,
+  }: { injector?: Injector } = {}): Signal<
+    ResolveUseLoaderData<TRouter, TRoute['id'], false>
+  > {
+    return loaderData({ id: this.options.id, injector });
+  }
+
+  routeParams<TRouter extends AnyRouter = RegisteredRouter>({
+    injector,
+  }: { injector?: Injector } = {}): Signal<
+    ResolveUseParams<TRouter, TRoute['id'], false>
+  > {
+    return routeParams({ id: this.options.id, injector });
+  }
+}
+
+export function createLazyRoute<
+  TRouter extends AnyRouter = RegisteredRouter,
+  TId extends string = string,
+  TRoute extends AnyRoute = RouteById<TRouter['routeTree'], TId>,
+>(id: ConstrainLiteral<TId, RouteIds<TRouter['routeTree']>>) {
+  return (options: LazyRouteOptions) => {
+    return new LazyRoute<TRoute>(Object.assign(options, { id }));
+  };
 }
 
 class RootRoute<
