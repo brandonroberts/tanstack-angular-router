@@ -17,7 +17,9 @@ import type { JSX } from 'solid-js';
 
 @Component({
   selector: 'tan-stack-router-devtools',
-  template: `<div #devToolsContainer></div>`,
+  template: `
+    <div #devToolsContainer></div>
+  `,
 })
 export class TanStackRouterDevtoolsComponent
   implements OnInit, OnChanges, AfterViewInit, OnDestroy

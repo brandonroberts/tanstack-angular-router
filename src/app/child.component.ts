@@ -12,7 +12,9 @@ export const Route = createRoute({
 
 @Component({
   selector: 'child',
-  template: ` Child {{ params().id }}`,
+  template: `
+    Child {{ params().id }}
+  `,
 })
 export class ChildComponent {
   params = Route.routeParams();

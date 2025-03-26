@@ -44,6 +44,11 @@ export class Outlet {
       const currentCmp = (
         route && route.options.component ? route.options.component() : undefined
       ) as Type<any>;
+
+      if (!currentCmp) {
+        return;
+      }
+
       const injector = context.getContext(
         matchesToRender.routeId,
         matchesToRender,

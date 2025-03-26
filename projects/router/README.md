@@ -7,4 +7,3 @@ This is an **experimental** release of the TanStack Router for Angular.
 ```sh
 npm install tanstack-angular-router-experimental
 ```
-

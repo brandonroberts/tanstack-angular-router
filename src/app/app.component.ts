@@ -1,12 +1,20 @@
 import { Component } from '@angular/core';
-import { injectRouter, Link, Outlet, TanStackRouterDevtoolsComponent } from 'tanstack-angular-router-experimental';
+import {
+  injectRouter,
+  Link,
+  Outlet,
+  TanStackRouterDevtoolsComponent,
+} from 'tanstack-angular-router-experimental';
 
 @Component({
   selector: 'app-root',
   imports: [Outlet, TanStackRouterDevtoolsComponent, Link],
   template: `
     <h1>Welcome to {{ title }}!</h1>
-    <a link="/" class="chau">Home</a> | <a link="/about">About</a> |
+    <a link="/" class="chau">Home</a>
+    |
+    <a link="/about">About</a>
+    |
     <a [link]="{ to: '/parent' }" [linkActive]="{ exact: false }">Parent 1</a>
     <hr />
 

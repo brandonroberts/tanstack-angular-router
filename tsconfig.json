@@ -18,7 +18,7 @@
     "target": "ES2022",
     "module": "ES2022",
     "paths": {
-      "@tanstack/angular-router": [
+      "tanstack-angular-router-experimental": [
         "./projects/router/src/public-api.ts"
       ]
     }
