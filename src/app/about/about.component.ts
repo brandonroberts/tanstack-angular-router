@@ -1,6 +1,9 @@
 import { JsonPipe } from '@angular/common';
 import { Component } from '@angular/core';
-import { createLazyRoute, routeApi } from 'tanstack-angular-router-experimental';
+import {
+  createLazyRoute,
+  routeApi,
+} from 'tanstack-angular-router-experimental';
 
 export const LazyAboutRoute = createLazyRoute('/about')({
   component: () => AboutComponent,

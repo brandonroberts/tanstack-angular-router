@@ -13,6 +13,8 @@ export const Route = createRoute({
 @Component({
   selector: 'home',
   standalone: true,
-  template: ` Hello from TanStack Router `,
+  template: `
+    Hello from TanStack Router
+  `,
 })
 export class HomeComponent {}

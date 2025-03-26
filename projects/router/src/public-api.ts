@@ -262,6 +262,7 @@ export type {
 } from '@tanstack/router-core';
 
 export * from './lib/context';
+export * from './lib/file-route';
 export * from './lib/link';
 export * from './lib/outlet';
 export * from './lib/route';
