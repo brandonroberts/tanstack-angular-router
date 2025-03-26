@@ -45,21 +45,16 @@ export class ContextService {
   }
 
   private getInjector(routeId: string, context: any, parentInjector: Injector) {
-    const injector = Injector.create({
+    return Injector.create({
       providers: [
         {
           provide: ROUTE_CONTEXT,
-          useValue: {
-            id: context.routeId,
-            params: context.params,
-          },
+          useValue: { id: context.routeId, params: context.params },
         },
       ],
       parent: parentInjector,
       name: routeId,
     });
-
-    return injector;
   }
 
   getEnvInjector(
@@ -67,9 +62,7 @@ export class ContextService {
     providers: Provider[] = [],
     injector: EnvironmentInjector
   ) {
-    const envInjector = createEnvironmentInjector(providers, injector, routeId);
-
-    return envInjector;
+    return createEnvironmentInjector(providers, injector, routeId);
   }
 }
 

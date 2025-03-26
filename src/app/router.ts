@@ -1,6 +1,6 @@
 import { TypedRouter } from '@tanstack/angular-router';
 
-import { Route as AboutRoute } from './about.component';
+import { AboutRoute } from './about/about.route';
 import { Route as ChildRoute } from './child.component';
 import { Route as HomeRoute } from './home.component';
 import { Route as ParentRoute } from './parent.component';
