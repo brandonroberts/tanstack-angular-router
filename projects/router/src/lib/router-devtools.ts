@@ -1,212 +1,118 @@
 import {
-  AfterViewInit,
-  ChangeDetectorRef,
-  Component,
+  afterNextRender,
+  booleanAttribute,
+  computed,
+  Directive,
+  effect,
   ElementRef,
-  Input,
+  inject,
+  input,
   NgZone,
-  OnChanges,
-  OnDestroy,
-  OnInit,
-  SimpleChanges,
-  ViewChild,
+  signal,
+  untracked,
 } from '@angular/core';
-import type { AnyRouter } from '@tanstack/router-core';
 import { TanStackRouterDevtoolsCore } from '@tanstack/router-devtools-core';
-import type { JSX } from 'solid-js';
+import { Router } from './router';
 
-@Component({
-  selector: 'tan-stack-router-devtools',
-  template: `
-    <div #devToolsContainer></div>
-  `,
-})
-export class TanStackRouterDevtoolsComponent
-  implements OnInit, OnChanges, AfterViewInit, OnDestroy
-{
-  @Input() initialIsOpen?: boolean;
-  @Input() panelProps?: JSX.HTMLAttributes<HTMLDivElement>;
-  @Input() closeButtonProps?: JSX.ButtonHTMLAttributes<HTMLButtonElement>;
-  @Input() toggleButtonProps?: JSX.ButtonHTMLAttributes<HTMLButtonElement>;
-  @Input() position?: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
-  @Input() containerElement?: string | any;
-  @Input() router?: AnyRouter;
-  @Input() shadowDOMTarget?: ShadowRoot;
+@Directive({ selector: 'div[routerDevtools]' })
+export class RouterDevtools {
+  private injectedRouter = inject(Router);
+  private host = inject<ElementRef<HTMLDivElement>>(ElementRef);
+  private ngZone = inject(NgZone);
 
-  @ViewChild('devToolsContainer', { static: true })
-  devToolsContainer!: ElementRef<HTMLDivElement>;
+  router = input(this.injectedRouter);
+  initialIsOpen = input(undefined, { transform: booleanAttribute });
+  panelOptions = input<Partial<HTMLDivElement>>({});
+  closeButtonOptions = input<Partial<HTMLButtonElement>>({});
+  toggleButtonOptions = input<Partial<HTMLButtonElement>>({});
+  shadowDOMTarget = input<ShadowRoot>();
+  containerElement = input<string | HTMLElement>();
+  position = input<'top-left' | 'top-right' | 'bottom-left' | 'bottom-right'>();
 
-  private devtools?: TanStackRouterDevtoolsCore;
-  private cleanup?: () => void;
-  private isDevtoolsMounted = false;
+  private activeRouterState = computed(() => this.router().routerState());
 
-  constructor(
-    private ngZone: NgZone,
-    private cdr: ChangeDetectorRef
-  ) {}
+  private devtools = signal<TanStackRouterDevtoolsCore | null>(null);
 
-  ngOnInit(): void {
-    if (!this.router) {
-      console.warn('No router provided to TanStackRouterDevtools');
-      return;
-    }
+  constructor() {
+    afterNextRender(() => {
+      const [
+        router,
+        initialIsOpen,
+        panelOptions,
+        closeButtonOptions,
+        toggleButtonOptions,
+        shadowDOMTarget,
+        containerElement,
+        position,
+        activeRouterState,
+      ] = [
+        untracked(this.router),
+        untracked(this.initialIsOpen),
+        untracked(this.panelOptions),
+        untracked(this.closeButtonOptions),
+        untracked(this.toggleButtonOptions),
+        untracked(this.shadowDOMTarget),
+        untracked(this.containerElement),
+        untracked(this.position),
+        untracked(this.activeRouterState),
+      ];
 
-    // Delay initialization to ensure proper state
-    setTimeout(() => this.initializeDevtools(), 0);
-  }
-
-  ngAfterViewInit(): void {
-    // If not initialized in ngOnInit, try again here
-    if (!this.isDevtoolsMounted && this.router) {
-      this.initializeDevtools();
-    }
-  }
-
-  ngOnChanges(changes: SimpleChanges): void {
-    if (!this.devtools) {
-      if (this.router) {
-        this.initializeDevtools();
-      }
-      return;
-    }
-
-    if (changes['router'] && this.router) {
-      this.updateRouter();
-    }
-
-    // Update options if any of them changed
-    if (
-      changes['initialIsOpen'] ||
-      changes['panelProps'] ||
-      changes['closeButtonProps'] ||
-      changes['toggleButtonProps'] ||
-      changes['position'] ||
-      changes['containerElement'] ||
-      changes['shadowDOMTarget']
-    ) {
-      this.updateOptions();
-    }
-  }
-
-  private initializeDevtools(): void {
-    if (!this.router || !this.devToolsContainer || this.isDevtoolsMounted)
-      return;
-
-    this.ngZone.runOutsideAngular(() => {
-      try {
-        // Create a clean initial options object
-        const options = {
-          router: this.router as AnyRouter,
-          routerState: this.router!.state,
-          initialIsOpen: this.initialIsOpen,
-          panelProps: this.panelProps,
-          closeButtonProps: this.closeButtonProps,
-          toggleButtonProps: this.toggleButtonProps,
-          position: this.position,
-          containerElement: this.containerElement,
-          shadowDOMTarget: this.shadowDOMTarget,
-        };
-
-        // Initialize with all options at once
-        this.devtools = new TanStackRouterDevtoolsCore(options);
-
-        // Set up manual router state tracking
-        this.setupStateTracking();
-
-        // Mount the devtools to the DOM
-        this.devtools.mount(this.devToolsContainer.nativeElement);
-        this.isDevtoolsMounted = true;
-      } catch (err) {
-        console.error('Failed to initialize TanStack Router DevTools:', err);
-      }
+      // initial devTools
+      this.devtools.set(
+        new TanStackRouterDevtoolsCore({
+          router,
+          routerState: activeRouterState,
+          initialIsOpen,
+          position,
+          panelProps: panelOptions,
+          closeButtonProps: closeButtonOptions,
+          toggleButtonProps: toggleButtonOptions,
+          shadowDOMTarget,
+          containerElement,
+        })
+      );
     });
-  }
 
-  private setupStateTracking(): void {
-    if (!this.router || !this.devtools) return;
-
-    // Set up a polling mechanism to check for router state changes
-    // since Angular's router state doesn't have a subscribe method
-    const checkInterval = 100; // ms
-    let previousState = this.router.state;
-
-    const intervalId = setInterval(() => {
-      if (this.router && this.devtools) {
-        const currentState = this.router.state;
-
-        // If state reference has changed
-        if (currentState !== previousState) {
-          previousState = currentState;
-
-          this.ngZone.runOutsideAngular(() => {
-            this.devtools?.setRouterState(currentState);
-          });
-        }
-      }
-    }, checkInterval);
-
-    // Store cleanup function
-    this.cleanup = () => clearInterval(intervalId);
-  }
-
-  private updateRouter(): void {
-    if (!this.devtools || !this.router) return;
-
-    this.ngZone.runOutsideAngular(() => {
-      try {
-        // Update router reference
-        this.devtools?.setRouter(this.router as AnyRouter);
-
-        // Update router state
-        this.devtools?.setRouterState(this.router!.state);
-
-        // Reset state tracking
-        if (this.cleanup) {
-          this.cleanup();
-        }
-        this.setupStateTracking();
-      } catch (err) {
-        console.error('Error updating TanStack Router DevTools router:', err);
-      }
+    effect(() => {
+      const devtools = this.devtools();
+      if (!devtools) return;
+      this.ngZone.runOutsideAngular(() => devtools.setRouter(this.router()));
     });
-  }
 
-  private updateOptions(): void {
-    if (!this.devtools) return;
-
-    this.ngZone.runOutsideAngular(() => {
-      try {
-        this.devtools?.setOptions({
-          initialIsOpen: this.initialIsOpen,
-          panelProps: this.panelProps,
-          closeButtonProps: this.closeButtonProps,
-          toggleButtonProps: this.toggleButtonProps,
-          position: this.position,
-          containerElement: this.containerElement,
-          shadowDOMTarget: this.shadowDOMTarget,
-        });
-      } catch (err) {
-        console.error('Error updating TanStack Router DevTools options:', err);
-      }
+    effect(() => {
+      const devtools = this.devtools();
+      if (!devtools) return;
+      this.ngZone.runOutsideAngular(() =>
+        devtools.setRouterState(this.activeRouterState())
+      );
     });
-  }
 
-  ngOnDestroy(): void {
-    // Clean up interval
-    if (this.cleanup) {
-      this.cleanup();
-    }
+    effect(() => {
+      const devtools = this.devtools();
+      if (!devtools) return;
 
-    // Unmount devtools
-    if (this.devtools) {
       this.ngZone.runOutsideAngular(() => {
-        try {
-          this.devtools?.unmount();
-          this.isDevtoolsMounted = false;
-        } catch (err) {
-          console.error('Error unmounting TanStack Router DevTools:', err);
-        }
+        devtools.setOptions({
+          initialIsOpen: this.initialIsOpen(),
+          panelProps: this.panelOptions(),
+          closeButtonProps: this.closeButtonOptions(),
+          toggleButtonProps: this.toggleButtonOptions(),
+          position: this.position(),
+          containerElement: this.containerElement(),
+          shadowDOMTarget: this.shadowDOMTarget(),
+        });
       });
-    }
+    });
+
+    effect((onCleanup) => {
+      const devtools = this.devtools();
+      if (!devtools) return;
+      this.ngZone.runOutsideAngular(() =>
+        devtools.mount(this.host.nativeElement)
+      );
+      onCleanup(() => {
+        this.ngZone.runOutsideAngular(() => devtools.unmount());
+      });
+    });
   }
 }

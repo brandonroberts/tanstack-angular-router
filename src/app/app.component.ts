@@ -1,14 +1,13 @@
 import { Component } from '@angular/core';
 import {
-  injectRouter,
   Link,
   Outlet,
-  TanStackRouterDevtoolsComponent,
+  RouterDevtools,
 } from 'tanstack-angular-router-experimental';
 
 @Component({
   selector: 'app-root',
-  imports: [Outlet, TanStackRouterDevtoolsComponent, Link],
+  imports: [Outlet, Link, RouterDevtools],
   template: `
     <h1>Welcome to {{ title }}!</h1>
     <a link="/" class="chau">Home</a>
@@ -20,13 +19,7 @@ import {
 
     <outlet />
 
-    @if (router) {
-      <tan-stack-router-devtools
-        [router]="router"
-        [initialIsOpen]="true"
-        position="bottom-right"
-      />
-    }
+    <div routerDevtools></div>
   `,
   styles: [
     `
@@ -40,5 +33,4 @@ import {
 })
 export class AppComponent {
   title = 'tanstack-router-angular';
-  router = injectRouter();
 }
