@@ -261,11 +261,10 @@ export type {
   ValidateUseSearchResult,
 } from '@tanstack/router-core';
 
-export * from './lib/context';
 export * from './lib/file-route';
 export * from './lib/link';
 export * from './lib/outlet';
 export * from './lib/route';
-export * from './lib/route-context';
 export * from './lib/router';
+export * from './lib/router-context';
 export * from './lib/router-devtools';
