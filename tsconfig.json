@@ -18,7 +18,9 @@
     "target": "ES2022",
     "module": "ES2022",
     "paths": {
-      "@tanstack/angular-router": ["./src/router/index.ts"]
+      "@tanstack/angular-router": [
+        "./projects/router/src/public-api.ts"
+      ]
     }
   },
   "angularCompilerOptions": {

@@ -1,3 +1,7 @@
+/*
+ * Public API Surface of router
+ */
+
 export { default as invariant } from 'tiny-invariant';
 export { default as warning } from 'tiny-warning';
 
@@ -223,7 +227,7 @@ export type {
   RouterHistory,
 } from '@tanstack/history';
 
-export { createRouter } from './create-router';
+export { createRouter } from './lib/create-router';
 
 export {
   PathParamError,
@@ -257,9 +261,10 @@ export type {
   ValidateUseSearchResult,
 } from '@tanstack/router-core';
 
-export * from './context';
-export * from './link';
-export * from './outlet';
-export * from './route';
-export * from './route-context';
-export * from './router';
+export * from './lib/context';
+export * from './lib/link';
+export * from './lib/outlet';
+export * from './lib/route';
+export * from './lib/route-context';
+export * from './lib/router';
+export * from './lib/router-devtools';

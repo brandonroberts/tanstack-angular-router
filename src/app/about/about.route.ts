@@ -1,4 +1,4 @@
-import { createRoute } from '@tanstack/angular-router';
+import { createRoute } from 'tanstack-angular-router-experimental';
 
 import { inject } from '@angular/core';
 import { firstValueFrom } from 'rxjs';

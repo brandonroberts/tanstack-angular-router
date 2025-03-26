@@ -5,7 +5,7 @@ import {
   injectRouter,
   Link,
   Outlet,
-} from '@tanstack/angular-router';
+} from 'tanstack-angular-router-experimental';
 
 import { Route as RootRoute } from './root.route';
 
