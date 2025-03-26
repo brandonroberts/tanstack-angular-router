@@ -1,4 +1,4 @@
-import { createRootRoute } from '@tanstack/angular-router';
+import { createRootRoute } from 'tanstack-angular-router-experimental';
 
 import { AppComponent } from './app.component';
 

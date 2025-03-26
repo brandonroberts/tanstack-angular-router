@@ -1,6 +1,5 @@
 import { Component } from '@angular/core';
-import { injectRouter, Link, Outlet } from '@tanstack/angular-router';
-import { TanStackRouterDevtoolsComponent } from '../router/router-devtools';
+import { injectRouter, Link, Outlet, TanStackRouterDevtoolsComponent } from 'tanstack-angular-router-experimental';
 
 @Component({
   selector: 'app-root',
