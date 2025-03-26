@@ -147,11 +147,8 @@ export class Link {
       : this.router.history.createHref(next.href);
   });
 
-  private ready = signal(false);
   transitioning = signal(false);
   isActive = computed(() => {
-    if (!this.ready()) return false;
-
     const [next, location, exact] = [
       this.next(),
       this.location(),
@@ -202,10 +199,6 @@ export class Link {
   });
 
   constructor() {
-    effect(() => {
-      this.ready.set(true);
-    });
-
     effect(() => {
       const [disabled, preload] = [
         untracked(this.disabled),
