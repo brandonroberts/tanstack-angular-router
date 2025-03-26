@@ -32,6 +32,12 @@ export const Route = createRoute({
       a {
         text-decoration: underline;
       }
+
+      a[data-active='true'] {
+        font-weight: bold;
+        padding: 0.5rem;
+        border: 1px solid red;
+      }
     `,
   ],
 })

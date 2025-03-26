@@ -7,7 +7,11 @@ import {
   Type,
   ViewContainerRef,
 } from '@angular/core';
-import { AnyRoute, RouterState } from '@tanstack/router-core';
+import {
+  AnyRoute,
+  getLocationChangeInfo,
+  RouterState,
+} from '@tanstack/router-core';
 
 import { context } from './context';
 import { injectRouteContext, injectRouter } from './router';
@@ -31,6 +35,11 @@ export class Outlet {
       }
 
       const matchesToRender = this.getMatch(routerState.matches.slice(1));
+
+      if (!matchesToRender) {
+        return;
+      }
+
       const route: AnyRoute = this.router.getRouteById(matchesToRender.routeId);
       const currentCmp = (
         route && route.options.component ? route.options.component() : undefined
@@ -53,6 +62,10 @@ export class Outlet {
           environmentInjector,
         });
         this.cmp = currentCmp;
+        this.router.emit({
+          type: 'onResolved',
+          ...getLocationChangeInfo(routerState),
+        });
       } else {
         this.cmpRef?.changeDetectorRef.markForCheck();
       }

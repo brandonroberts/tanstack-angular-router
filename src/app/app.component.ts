@@ -7,9 +7,8 @@ import { TanStackRouterDevtoolsComponent } from '../router/router-devtools';
   imports: [Outlet, TanStackRouterDevtoolsComponent, Link],
   template: `
     <h1>Welcome to {{ title }}!</h1>
-
-    <a link="/">Home</a> | <a link="/about">About</a> |
-    <a [link]="{ to: '/parent/$id', params: { id: '1' } }">Parent 1</a>
+    <a link="/" class="chau">Home</a> | <a link="/about">About</a> |
+    <a [link]="{ to: '/parent' }" [linkActive]="{ exact: false }">Parent 1</a>
     <hr />
 
     <outlet />
@@ -22,7 +21,15 @@ import { TanStackRouterDevtoolsComponent } from '../router/router-devtools';
       />
     }
   `,
-  styles: [],
+  styles: [
+    `
+      a[data-active='true'] {
+        font-weight: bold;
+        padding: 0.5rem;
+        border: 1px solid;
+      }
+    `,
+  ],
 })
 export class AppComponent {
   title = 'tanstack-router-angular';
