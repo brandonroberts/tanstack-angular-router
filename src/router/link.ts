@@ -26,6 +26,7 @@ import { injectRouter } from './router';
     '(touchstart)': 'type() === "internal" && handleClick($event)',
     '(mouseenter)': 'type() === "internal" && handleMouseEnter($event)',
     '(mouseleave)': 'type() === "internal" && handleMouseLeave()',
+    '[class]': '[isActive() ? activeClass() : ""]',
     '[attr.data-active]': 'isActive()',
     '[attr.data-type]': 'type()',
     '[attr.data-transitioning]':
@@ -41,7 +42,7 @@ export class Link {
     alias: 'link',
     transform: (
       value:
-        | (Omit<LinkOptions, 'to'> & {
+        | (Omit<LinkOptions, 'to' | 'activeOptions'> & {
             to: NonNullable<LinkOptions['to']>;
           })
         | NonNullable<LinkOptions['to']>
@@ -49,6 +50,20 @@ export class Link {
       return (typeof value === 'object' ? value : { to: value }) as LinkOptions;
     },
   });
+  linkActiveOptions = input(
+    { class: 'active' },
+    {
+      alias: 'linkActive',
+      transform: (
+        value: (LinkOptions['activeOptions'] & { class?: string }) | string
+      ) => {
+        if (typeof value === 'string') return { class: value };
+
+        if (!value.class) value.class = 'active';
+        return value;
+      },
+    }
+  );
 
   router = injectRouter();
   hostElement = inject<ElementRef<HTMLAnchorElement>>(ElementRef);
@@ -59,34 +74,34 @@ export class Link {
     () => this.router.routerState().location.search
   );
 
-  private to = computed(() => this.linkOptions().to);
   protected disabled = computed(() => this.linkOptions().disabled);
+  private to = computed(() => this.linkOptions().to);
   private userFrom = computed(() => this.linkOptions().from);
   private userReloadDocument = computed(
     () => this.linkOptions().reloadDocument
   );
   private userPreload = computed(() => this.linkOptions().preload);
   private userPreloadDelay = computed(() => this.linkOptions().preloadDelay);
-  private exactActiveOptions = computed(
-    () => this.linkOptions().activeOptions?.exact
-  );
+  private exactActiveOptions = computed(() => this.linkActiveOptions().exact);
   private includeHashActiveOptions = computed(
-    () => this.linkOptions().activeOptions?.includeHash
+    () => this.linkActiveOptions().includeHash
   );
   private includeSearchActiveOptions = computed(
-    () => this.linkOptions().activeOptions?.includeSearch
+    () => this.linkActiveOptions().includeSearch
   );
   private explicitUndefinedActiveOptions = computed(
-    () => this.linkOptions().activeOptions?.explicitUndefined
+    () => this.linkActiveOptions().explicitUndefined
   );
+  protected activeClass = computed(() => this.linkActiveOptions().class);
 
   protected type = computed(() => {
     const to = this.to();
     try {
       new URL(`${to}`);
       return 'external';
-    } catch {}
-    return 'internal';
+    } catch {
+      return 'internal';
+    }
   });
 
   private from = computed(() => {
@@ -200,6 +215,13 @@ export class Link {
         this.doPreload();
       }
     });
+
+    effect((onCleanup) => {
+      const unsub = this.router.subscribe('onResolved', () => {
+        this.transitioning.set(false);
+      });
+      onCleanup(() => unsub());
+    });
   }
 
   protected handleClick(event: MouseEvent) {
@@ -220,11 +242,6 @@ export class Link {
 
     event.preventDefault();
     this.transitioning.set(true);
-
-    const unsub = this.router.subscribe('onResolved', () => {
-      unsub();
-      this.transitioning.set(false);
-    });
 
     this.router.navigate(this.navigateOptions());
   }

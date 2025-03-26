@@ -7,18 +7,8 @@ import { TanStackRouterDevtoolsComponent } from '../router/router-devtools';
   imports: [Outlet, TanStackRouterDevtoolsComponent, Link],
   template: `
     <h1>Welcome to {{ title }}!</h1>
-
-    <a #link="link" link="/" [class.active]="link.isActive()">Home</a> |
-    <a #aboutLink="link" link="/about" [class.active]="aboutLink.isActive()"
-      >About</a
-    >
-    |
-    <a
-      #parentOneLink="link"
-      [link]="{ to: '/parent/$id', params: { id: '1' } }"
-      [class.active]="parentOneLink.isActive()"
-      >Parent 1</a
-    >
+    <a link="/" class="chau">Home</a> | <a link="/about">About</a> |
+    <a [link]="{ to: '/parent' }" [linkActive]="{ exact: false }">Parent 1</a>
     <hr />
 
     <outlet />
@@ -33,7 +23,7 @@ import { TanStackRouterDevtoolsComponent } from '../router/router-devtools';
   `,
   styles: [
     `
-      .active {
+      a[data-active='true'] {
         font-weight: bold;
         padding: 0.5rem;
         border: 1px solid;

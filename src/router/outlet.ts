@@ -35,6 +35,11 @@ export class Outlet {
       }
 
       const matchesToRender = this.getMatch(routerState.matches.slice(1));
+
+      if (!matchesToRender) {
+        return;
+      }
+
       const route: AnyRoute = this.router.getRouteById(matchesToRender.routeId);
       const currentCmp = (
         route && route.options.component ? route.options.component() : undefined

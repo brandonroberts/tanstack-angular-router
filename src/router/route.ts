@@ -6,22 +6,102 @@ import {
   runInInjectionContext,
   Signal,
 } from '@angular/core';
-import type {
+import {
   AnyContext,
   AnyRoute,
   AnyRouter,
+  BaseRootRoute,
+  BaseRoute,
+  BaseRouteApi,
+  ConstrainLiteral,
   RegisteredRouter,
   ResolveFullPath,
   ResolveId,
   ResolveParams,
   ResolveUseLoaderData,
+  ResolveUseParams,
   RootRouteOptions,
   RouteConstraints,
+  RouteIds,
   RouteOptions,
-  UseParamsResult,
 } from '@tanstack/router-core';
-import { BaseRootRoute, BaseRoute } from '@tanstack/router-core';
 import { injectRouteContext, injectRouter, RouterContext } from './router';
+
+function loaderData({ injector }: { injector?: Injector } = {}) {
+  !injector && assertInInjectionContext(loaderData);
+
+  if (!injector) {
+    injector = inject(Injector);
+  }
+
+  return runInInjectionContext(injector, () => {
+    const router = injectRouter();
+    const context = injectRouteContext();
+
+    return computed(() => {
+      const routerState = router.routerState();
+      const route = routerState.matches.find(
+        (match) => match.routeId === context!.id
+      );
+
+      return (route && route.loaderData) || {};
+    });
+  });
+}
+
+function routeParams({ injector }: { injector?: Injector } = {}) {
+  !injector && assertInInjectionContext(routeParams);
+
+  if (!injector) {
+    injector = inject(Injector);
+  }
+
+  return runInInjectionContext(injector, () => {
+    const router = injectRouter();
+    const context = injectRouteContext();
+
+    return computed(() => {
+      const routerState = router.routerState();
+      const route = routerState.matches.find(
+        (match) => match.routeId === context!.id
+      );
+
+      return (route && route.params) || {};
+    });
+  });
+}
+
+export function routeApi<
+  const TId,
+  TRouter extends AnyRouter = RegisteredRouter,
+>({
+  id,
+  injector,
+}: {
+  id: ConstrainLiteral<TId, RouteIds<TRouter['routeTree']>>;
+  injector?: Injector;
+}): BaseRouteApi<TId, TRouter> & {
+  loaderData: () => Signal<ResolveUseLoaderData<TRouter, TId, false>>;
+  routeParams: () => Signal<ResolveUseParams<TRouter, TId, false>>;
+} {
+  !injector && assertInInjectionContext(routeApi);
+
+  if (!injector) {
+    injector = inject(Injector);
+  }
+
+  const _loaderData = loaderData.bind(null, { injector });
+  const _routeParams = routeParams.bind(null, { injector });
+
+  return runInInjectionContext(injector, () => {
+    const routeApi = new BaseRouteApi<TId, TRouter>({ id });
+
+    return Object.assign(routeApi, {
+      loaderData: _loaderData,
+      routeParams: _routeParams,
+    });
+  });
+}
 
 class Route<
   in out TParentRoute extends RouteConstraints['TParentRoute'] = AnyRoute,
@@ -86,54 +166,17 @@ class Route<
   >({ injector }: { injector?: Injector } = {}): Signal<
     ResolveUseLoaderData<TRouter, TFrom, false>
   > {
-    !injector && assertInInjectionContext(this.loaderData);
-
-    if (!injector) {
-      injector = inject(Injector);
-    }
-
-    return runInInjectionContext(injector, () => {
-      const router = injectRouter();
-      const context = injectRouteContext();
-
-      return computed(() => {
-        const routerState = router.routerState();
-        const route = routerState.matches.find(
-          (match) => match.routeId === context!.id
-        );
-
-        return (route && route.loaderData) || {};
-      });
-    });
+    return loaderData({ injector });
   }
 
   routeParams<
     TRouter extends AnyRouter = RegisteredRouter,
     const TFrom extends string | undefined = undefined,
     TStrict extends boolean = false,
-    TSelected = unknown,
   >({ injector }: { injector?: Injector } = {}): Signal<
-    UseParamsResult<TRouter, TFrom, TStrict, TSelected>
+    ResolveUseParams<TRouter, TFrom, TStrict>
   > {
-    !injector && assertInInjectionContext(this.routeParams);
-
-    if (!injector) {
-      injector = inject(Injector);
-    }
-
-    return runInInjectionContext(injector, () => {
-      const router = injectRouter();
-      const context = injectRouteContext();
-
-      return computed(() => {
-        const routerState = router.routerState();
-        const route = routerState.matches.find(
-          (match) => match.routeId === context!.id
-        );
-
-        return (route && route.params) || {};
-      });
-    });
+    return routeParams({ injector });
   }
 }
 
