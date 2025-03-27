@@ -1,12 +1,14 @@
 import {
   createEnvironmentInjector,
   EnvironmentInjector,
+  inject,
+  InjectionToken,
   Injector,
   Provider,
 } from '@angular/core';
 import { ROUTE_CONTEXT } from './router';
 
-export class ContextService {
+class RouterContext {
   private readonly injectors = new Map<string, Injector>();
   private readonly envInjectors = new Map<string, EnvironmentInjector>();
 
@@ -14,7 +16,7 @@ export class ContextService {
     this.injectors.set(routeId, injector);
   }
 
-  getContext(routeId: string, context: any, parent: Injector) {
+  getContext(routeId: string, context: Record<string, any>, parent: Injector) {
     const injector = this.injectors.get(routeId);
 
     if (injector) {
@@ -44,12 +46,16 @@ export class ContextService {
     return newInjector;
   }
 
-  private getInjector(routeId: string, context: any, parentInjector: Injector) {
+  private getInjector(
+    routeId: string,
+    context: Record<string, any>,
+    parentInjector: Injector
+  ) {
     return Injector.create({
       providers: [
         {
           provide: ROUTE_CONTEXT,
-          useValue: { id: context.routeId, params: context.params },
+          useValue: { id: context['routeId'], params: context['params'] },
         },
       ],
       parent: parentInjector,
@@ -66,4 +72,11 @@ export class ContextService {
   }
 }
 
-export const context = new ContextService();
+export const ROUTER_CONTEXT = new InjectionToken<RouterContext>(
+  'ROUTER_CONTEXT',
+  { factory: () => new RouterContext() }
+);
+
+export function injectRouterContext() {
+  return inject(ROUTER_CONTEXT);
+}

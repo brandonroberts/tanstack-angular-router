@@ -2,12 +2,12 @@ import { Component } from '@angular/core';
 
 import { createRoute } from 'tanstack-angular-router-experimental';
 
-import { Route as ParentRoute } from './parent.component';
+import { Route as ParentRoute } from './parent';
 
 export const Route = createRoute({
   getParentRoute: () => ParentRoute,
   path: '$id',
-  component: () => ChildComponent,
+  component: () => Child,
 });
 
 @Component({
@@ -16,6 +16,6 @@ export const Route = createRoute({
     Child {{ params().id }}
   `,
 })
-export class ChildComponent {
+export class Child {
   params = Route.routeParams();
 }

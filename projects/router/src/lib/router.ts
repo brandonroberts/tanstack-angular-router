@@ -4,6 +4,7 @@ import {
   InjectionToken,
   Injector,
   makeEnvironmentProviders,
+  provideAppInitializer,
   Provider,
   Type,
 } from '@angular/core';
@@ -13,8 +14,8 @@ import {
   RouterConstructorOptions,
   RouterCore,
 } from '@tanstack/router-core';
-import { context } from './context';
 import { createRouter, NgRouter } from './create-router';
+import { injectRouterContext } from './router-context';
 
 export type RouteObject = {
   element: Type<any>;
@@ -48,17 +49,25 @@ export function provideRouter(
       provide: Router,
       useFactory: () => {
         const injector = inject(EnvironmentInjector);
+        const routerContext = injectRouterContext();
         return createRouter({
           ...options,
           context: {
             ...options.context,
             getRouteInjector(routeId: string, providers: Provider[] = []) {
-              return context.getEnvContext(routeId, providers, injector);
+              return routerContext.getEnvContext(routeId, providers, injector);
             },
           },
         });
       },
     },
+    provideAppInitializer(() => {
+      const router = injectRouter();
+      router.load().then(() => {
+        console.log('initial router load');
+      });
+      return Promise.resolve();
+    }),
   ]);
 }
 

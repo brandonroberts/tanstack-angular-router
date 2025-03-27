@@ -1,22 +1,33 @@
+import { isPlatformBrowser } from '@angular/common';
 import {
+  ApplicationRef,
+  computed,
+  effect,
   EnvironmentInjector,
   inject,
+  linkedSignal,
+  PLATFORM_ID,
   Provider,
   signal,
   Type,
 } from '@angular/core';
 import type { RouterHistory } from '@tanstack/history';
-import type {
+import {
   AnyRoute,
   CreateRouterFn,
+  getLocationChangeInfo,
   RouterConstructorOptions,
+  RouterCore,
   TrailingSlashOption,
+  trimPathRight,
 } from '@tanstack/router-core';
-import { RouterCore } from '@tanstack/router-core';
 
 declare module '@tanstack/router-core' {
   export interface UpdatableRouteOptionsExtensions {
     component?: () => Type<any>;
+    notFoundComponent?: () => Type<any>;
+    pendingComponent?: () => Type<any>;
+    errorComponent?: () => Type<any>;
     providers?: Provider[];
   }
   export interface RouterOptionsExtensions {
@@ -34,14 +45,14 @@ declare module '@tanstack/router-core' {
      * @link [API Docs](https://tanstack.com/router/latest/docs/framework/solid/api/router/RouterOptionsType#defaulterrorcomponent-property)
      * @link [Guide](https://tanstack.com/router/latest/docs/framework/solid/guide/data-loading#handling-errors-with-routeoptionserrorcomponent)
      */
-    // defaultErrorComponent?: ErrorRouteComponent
+    defaultErrorComponent?: () => Type<any>;
     /**
      * The default `pendingComponent` a route should use if no pending component is provided.
      *
      * @link [API Docs](https://tanstack.com/router/latest/docs/framework/solid/api/router/RouterOptionsType#defaultpendingcomponent-property)
      * @link [Guide](https://tanstack.com/router/latest/docs/framework/solid/guide/data-loading#showing-a-pending-component)
      */
-    // defaultPendingComponent?: RouteComponent
+    defaultPendingComponent?: () => Type<any>;
     /**
      * The default `notFoundComponent` a route should use if no notFound component is provided.
      *
@@ -49,24 +60,7 @@ declare module '@tanstack/router-core' {
      * @link [API Docs](https://tanstack.com/router/latest/docs/framework/solid/api/router/RouterOptionsType#defaultnotfoundcomponent-property)
      * @link [Guide](https://tanstack.com/router/latest/docs/framework/solid/guide/not-found-errors#default-router-wide-not-found-handling)
      */
-    // defaultNotFoundComponent?: NotFoundRouteComponent
-    /**
-     * A component that will be used to wrap the entire router.
-     *
-     * This is useful for providing a context to the entire router.
-     *
-     * @link [API Docs](https://tanstack.com/router/latest/docs/framework/solid/api/router/RouterOptionsType#wrap-property)
-     */
-    // Wrap?: (props: { children: any }) => Type<unknown>
-    /**
-     * A component that will be used to wrap the inner contents of the router.
-     *
-     * This is useful for providing a context to the inner contents of the router where you also need access to the router context and hooks.
-     *
-     * @link [API Docs](https://tanstack.com/router/latest/docs/framework/solid/api/router/RouterOptionsType#innerwrap-property)
-     */
-    // InnerWrap?: (props: { children: any }) => Type<unknown>
-
+    defaultNotFoundComponent?: () => Type<any>;
     /**
      * The default `onCatch` handler for errors caught by the Router ErrorBoundary
      *
@@ -94,8 +88,39 @@ export class NgRouter<
   TRouterHistory,
   TDehydrated
 > {
-  readonly routerState = signal(this.state);
-  readonly injector = inject(EnvironmentInjector);
+  injector = inject(EnvironmentInjector);
+  private platformId = inject(PLATFORM_ID);
+  private appRef = inject(ApplicationRef);
+
+  historyState = linkedSignal(() => this.history);
+  routerState = linkedSignal(() => this.state);
+  isTransitioning = signal(false);
+
+  private matches = computed(() => this.routerState().matches);
+
+  hasPendingMatches = computed(() =>
+    this.matches().some((match) => match.status === 'pending')
+  );
+
+  isLoading = computed(() => this.routerState().isLoading);
+  prevIsLoading = linkedSignal<boolean, boolean>({
+    source: this.isLoading,
+    computation: (src, prev) => prev?.source ?? src,
+  });
+
+  isAnyPending = computed(
+    () => this.isLoading() || this.isTransitioning() || this.hasPendingMatches()
+  );
+  prevIsAnyPending = linkedSignal<boolean, boolean>({
+    source: this.isAnyPending,
+    computation: (src, prev) => prev?.source ?? src,
+  });
+
+  isPagePending = computed(() => this.isLoading() || this.hasPendingMatches());
+  prevIsPagePending = linkedSignal<boolean, boolean>({
+    source: this.isPagePending,
+    computation: (src, prev) => prev?.source ?? src,
+  });
 
   constructor(
     options: RouterConstructorOptions<
@@ -108,9 +133,93 @@ export class NgRouter<
   ) {
     super(options);
 
-    void this.load({ sync: true });
-    this.__store.subscribe(() => this.routerState.set(this.state));
-    this.history.subscribe(() => this.load());
+    if (isPlatformBrowser(this.platformId)) {
+      this.startTransition = (fn: () => void) => {
+        this.isTransitioning.set(true);
+        // NOTE: not quite the same as `React.startTransition` but close enough
+        queueMicrotask(() => {
+          fn();
+          this.isTransitioning.set(false);
+          this.appRef.tick();
+        });
+      };
+    }
+
+    effect((onCleanup) => {
+      const unsub = this.__store.subscribe(() => {
+        this.routerState.set(this.state);
+      });
+      onCleanup(() => unsub());
+    });
+
+    effect((onCleanup) => {
+      const unsub = this.history.subscribe(() => {
+        this.historyState.set(this.history);
+        void this.load();
+      });
+
+      // track history state
+      this.historyState();
+      const nextLocation = this.buildLocation({
+        to: this.latestLocation.pathname,
+        search: true,
+        params: true,
+        hash: true,
+        state: true,
+        _includeValidateSearch: true,
+      });
+
+      if (
+        trimPathRight(this.latestLocation.href) !==
+        trimPathRight(nextLocation.href)
+      ) {
+        void this.commitLocation({ ...nextLocation, replace: true });
+      }
+
+      onCleanup(() => unsub());
+    });
+
+    effect(() => {
+      const [prevIsLoading, isLoading] = [
+        this.prevIsLoading(),
+        this.isLoading(),
+      ];
+      if (prevIsLoading && !isLoading) {
+        this.emit({
+          type: 'onLoad', // When the new URL has committed, when the new matches have been loaded into state.matches
+          ...getLocationChangeInfo(this.state),
+        });
+      }
+    });
+
+    effect(() => {
+      const [prevIsPagePending, isPagePending] = [
+        this.prevIsPagePending(),
+        this.isPagePending(),
+      ];
+      if (prevIsPagePending && !isPagePending) {
+        this.emit({
+          type: 'onBeforeRouteMount',
+          ...getLocationChangeInfo(this.state),
+        });
+      }
+    });
+
+    effect(() => {
+      const [prevIsAnyPending, isAnyPending] = [
+        this.prevIsAnyPending(),
+        this.isAnyPending(),
+      ];
+      // The router was pending and now it's not
+      if (prevIsAnyPending && !isAnyPending) {
+        this.emit({ type: 'onResolved', ...getLocationChangeInfo(this.state) });
+        this.__store.setState((s) => ({
+          ...s,
+          status: 'idle',
+          resolvedLocation: s.location,
+        }));
+      }
+    });
   }
 
   getRouteById(routeId: string) {

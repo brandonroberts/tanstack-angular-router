@@ -3,14 +3,17 @@ import { createRoute } from 'tanstack-angular-router-experimental';
 import { inject } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { Route as RootRoute } from '../root.route';
-import { TodosService } from '../todos.service';
+import { Spinner } from '../spinner';
+import { TodosClient } from '../todos-client';
 
 export const AboutRoute = createRoute({
   getParentRoute: () => RootRoute,
   path: 'about',
+  pendingComponent: () => Spinner,
   loader: async () => {
-    const todosService = inject(TodosService);
+    const todosService = inject(TodosClient);
+    await new Promise((resolve) => setTimeout(resolve, 5_000));
     const todos = await firstValueFrom(todosService.getTodo(1));
     return { todos };
   },
-}).lazy(() => import('./about.component').then((m) => m.LazyAboutRoute));
+}).lazy(() => import('./about').then((m) => m.LazyAboutRoute));

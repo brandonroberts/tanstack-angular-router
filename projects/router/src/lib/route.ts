@@ -21,6 +21,7 @@ import {
   ResolveParams,
   ResolveUseLoaderData,
   ResolveUseParams,
+  ResolveUseSearch,
   RootRouteOptions,
   RouteById,
   RouteConstraints,
@@ -54,6 +55,35 @@ function loaderData({
       );
 
       return (route && route.loaderData) || {};
+    });
+  });
+}
+
+function routeSearch({
+  id,
+  injector,
+}: { id?: string; injector?: Injector } = {}) {
+  !injector && assertInInjectionContext(routeSearch);
+
+  if (!injector) {
+    injector = inject(Injector);
+  }
+
+  return runInInjectionContext(injector, () => {
+    const router = injectRouter();
+    const routeId = id ?? injectRouteContext()?.id;
+
+    if (!routeId) {
+      throw new Error('routeId is required');
+    }
+
+    return computed(() => {
+      const routerState = router.routerState();
+      const route = routerState.matches.find(
+        (match) => match.routeId === routeId
+      );
+
+      return (route && route.search) || ({} as Record<string, unknown>);
     });
   });
 }
@@ -99,6 +129,7 @@ export function routeApi<
 }): BaseRouteApi<TId, TRouter> & {
   loaderData: () => Signal<ResolveUseLoaderData<TRouter, TId, false>>;
   routeParams: () => Signal<ResolveUseParams<TRouter, TId, false>>;
+  routeSearch: () => Signal<ResolveUseSearch<TRouter, TId, false>>;
 } {
   !injector && assertInInjectionContext(routeApi);
 
@@ -108,6 +139,7 @@ export function routeApi<
 
   const _loaderData = loaderData.bind(null, { id, injector });
   const _routeParams = routeParams.bind(null, { id, injector });
+  const _routeSearch = routeSearch.bind(null, { id, injector });
 
   return runInInjectionContext(injector, () => {
     const routeApi = new BaseRouteApi<TId, TRouter>({ id });
@@ -115,6 +147,7 @@ export function routeApi<
     return Object.assign(routeApi, {
       loaderData: _loaderData,
       routeParams: _routeParams,
+      routeSearch: _routeSearch,
     });
   });
 }
@@ -193,6 +226,16 @@ class Route<
     ResolveUseParams<TRouter, TFrom, TStrict>
   > {
     return routeParams({ id: this.id, injector });
+  }
+
+  routeSearch<
+    TRouter extends AnyRouter = RegisteredRouter,
+    const TFrom extends string | undefined = undefined,
+    TStrict extends boolean = false,
+  >({ injector }: { injector?: Injector } = {}): Signal<
+    ResolveUseSearch<TRouter, TFrom, TStrict>
+  > {
+    return routeSearch({ id: this.id, injector });
   }
 }
 
@@ -295,6 +338,14 @@ export class LazyRoute<TRoute extends AnyRoute> {
     ResolveUseParams<TRouter, TRoute['id'], false>
   > {
     return routeParams({ id: this.options.id, injector });
+  }
+
+  routeSearch<TRouter extends AnyRouter = RegisteredRouter>({
+    injector,
+  }: { injector?: Injector } = {}): Signal<
+    ResolveUseSearch<TRouter, TRoute['id'], false>
+  > {
+    return routeSearch({ id: this.options.id, injector });
   }
 }
 
@@ -463,8 +514,8 @@ export class NotFoundRoute<
 function runFnInInjectionContext<TFn extends (...args: any[]) => any>(fn: TFn) {
   const originalFn = fn;
   return (...args: Parameters<TFn>) => {
-    const { context, route } = args[0];
-    const routeInjector = context.getRouteInjector(route.id);
+    const { context, location } = args[0];
+    const routeInjector = context.getRouteInjector(location.href);
     return runInInjectionContext(routeInjector, originalFn.bind(null, ...args));
   };
 }
