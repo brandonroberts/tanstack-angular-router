@@ -12,7 +12,7 @@ import { Route as RootRoute } from './root.route';
 export const Route = createRoute({
   getParentRoute: () => RootRoute,
   path: 'parent',
-  component: () => ParentComponent,
+  component: () => Parent,
 });
 
 @Component({
@@ -43,6 +43,6 @@ export const Route = createRoute({
     `,
   ],
 })
-export class ParentComponent {
+export class Parent {
   router = injectRouter();
 }

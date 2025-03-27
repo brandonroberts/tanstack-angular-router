@@ -15,11 +15,15 @@ import {
     <a link="/about">About</a>
     |
     <a [link]="{ to: '/parent' }" [linkActive]="{ exact: false }">Parent 1</a>
+    |
+    <a [link]="{ to: '/protected' }">Protected</a>
+    |
+    <a [link]="{ to: '/login' }">Login</a>
     <hr />
 
     <outlet />
 
-    <div routerDevtools></div>
+    <router-devtools />
   `,
   styles: [
     `
@@ -31,6 +35,6 @@ import {
     `,
   ],
 })
-export class AppComponent {
+export class App {
   title = 'tanstack-router-angular';
 }

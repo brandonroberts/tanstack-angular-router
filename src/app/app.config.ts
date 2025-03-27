@@ -8,6 +8,7 @@ import { routeTree } from './router';
 export const appConfig: ApplicationConfig = {
   providers: [
     provideZoneChangeDetection({ eventCoalescing: true }),
+    // provideExperimentalZonelessChangeDetection(),
     provideRouter({ routeTree }),
     provideHttpClient(withFetch()),
   ],

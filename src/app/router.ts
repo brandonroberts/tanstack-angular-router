@@ -1,15 +1,19 @@
 import { TypedRouter } from 'tanstack-angular-router-experimental';
 
 import { AboutRoute } from './about/about.route';
-import { Route as ChildRoute } from './child.component';
-import { Route as HomeRoute } from './home.component';
-import { Route as ParentRoute } from './parent.component';
+import { Route as ChildRoute } from './child';
+import { Route as HomeRoute } from './home';
+import { Route as LoginRoute } from './login';
+import { Route as ParentRoute } from './parent';
+import { Route as ProtectedRoute } from './protected';
 import { Route as RootRoute } from './root.route';
 
 export const routeTree = RootRoute.addChildren([
   HomeRoute,
   AboutRoute,
   ParentRoute.addChildren([ChildRoute]),
+  ProtectedRoute,
+  LoginRoute,
 ]);
 
 export type router = TypedRouter<typeof routeTree>;

@@ -7,14 +7,13 @@ import { Route as RootRoute } from './root.route';
 export const Route = createRoute({
   getParentRoute: () => RootRoute,
   path: '/',
-  component: () => HomeComponent,
+  component: () => Home,
 });
 
 @Component({
   selector: 'home',
-  standalone: true,
   template: `
     Hello from TanStack Router
   `,
 })
-export class HomeComponent {}
+export class Home {}

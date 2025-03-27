@@ -4,6 +4,7 @@ import {
   InjectionToken,
   Injector,
   makeEnvironmentProviders,
+  provideAppInitializer,
   Provider,
   Type,
 } from '@angular/core';
@@ -60,6 +61,13 @@ export function provideRouter(
         });
       },
     },
+    provideAppInitializer(() => {
+      const router = injectRouter();
+      router.load().then(() => {
+        console.log('initial router load');
+      });
+      return Promise.resolve();
+    }),
   ]);
 }
 

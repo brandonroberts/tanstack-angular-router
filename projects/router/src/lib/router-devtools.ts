@@ -14,7 +14,7 @@ import {
 import { TanStackRouterDevtoolsCore } from '@tanstack/router-devtools-core';
 import { Router } from './router';
 
-@Directive({ selector: 'div[routerDevtools]' })
+@Directive({ selector: 'router-devtools', host: { style: 'display: block;' } })
 export class RouterDevtools {
   private injectedRouter = inject(Router);
   private host = inject<ElementRef<HTMLDivElement>>(ElementRef);

@@ -234,10 +234,11 @@ export {
   SearchParamError,
   componentTypes,
   getInitialRouterState,
+  isNotFound,
   lazyFn,
+  notFound,
+  redirect,
 } from '@tanstack/router-core';
-
-export { isNotFound, notFound } from '@tanstack/router-core';
 export type { NotFoundError } from '@tanstack/router-core';
 
 export type {

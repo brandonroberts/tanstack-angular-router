@@ -1,86 +1,168 @@
 import {
   ComponentRef,
+  computed,
   DestroyRef,
   Directive,
   effect,
+  EnvironmentInjector,
   inject,
+  Injector,
   Type,
   ViewContainerRef,
 } from '@angular/core';
-import {
-  AnyRoute,
-  getLocationChangeInfo,
-  RouterState,
-} from '@tanstack/router-core';
+import { AnyRoute, RouterState } from '@tanstack/router-core';
+import invariant from 'tiny-invariant';
 
+import { DefaultNotFound } from './not-found';
 import { injectRouteContext, injectRouter } from './router';
 import { injectRouterContext } from './router-context';
 
 @Directive({ selector: 'outlet', exportAs: 'outlet' })
 export class Outlet {
-  private routeContext = injectRouteContext();
-  private routerContext = injectRouterContext();
   private router = injectRouter();
+  private routerContext = injectRouterContext();
+  private routeContext = injectRouteContext();
   private vcr = inject(ViewContainerRef);
+  private injector = inject(Injector);
+  private environmentInjector = inject(EnvironmentInjector);
 
-  private cmp: Type<any> | null = null;
-  private cmpRef: ComponentRef<any> | null = null;
+  private fullMatches = computed(() => this.router.routerState().matches);
+  private matchId = computed(
+    () => this.routeContext?.id || this.fullMatches()[0]?.id
+  );
+
+  /**
+   * NOTE: we slice off the first match because we let Angular renders the root route
+   */
+  private matches = computed(() => this.fullMatches().slice(1));
+  private pendingMatches = computed(() =>
+    this.router.routerState().pendingMatches?.slice(1)
+  );
+  private match = computed(() => {
+    const matches = this.matches();
+    const index = matches.findIndex((d) => d.id === this.routeContext?.id);
+    return matches[index + 1];
+  });
+  private pendingMatch = computed(() => {
+    const pendingMatches = this.pendingMatches();
+    if (!pendingMatches) return null;
+    const index = pendingMatches.findIndex(
+      (d) => d.id === this.routeContext?.id
+    );
+    return pendingMatches[index + 1];
+  });
+  private routeMatch = computed(() => this.pendingMatch() || this.match());
+
+  private route = computed(() => {
+    const match = this.routeMatch();
+    if (!match) return null;
+    return this.router.routesById[match.routeId];
+  });
+  private parentGlobalNotFound = computed(() => {
+    const matchId = this.matchId();
+    if (!matchId) return null;
+
+    const match = this.match();
+    if (match) return null;
+
+    const matches = this.fullMatches();
+    const parentMatch = matches.find((d) => d.id === matchId);
+    invariant(
+      parentMatch,
+      `Could not find parent match for matchId "${this.routeContext?.id}"`
+    );
+    const route = this.router.routesById[parentMatch.routeId];
+    return { globalNotFound: parentMatch.globalNotFound, route };
+  });
+
+  private cmp?: Type<any>;
+  private cmpRef?: ComponentRef<any>;
 
   constructor() {
     effect(() => {
-      const routerState = this.router.routerState();
+      const parentGlobalNotFound = this.parentGlobalNotFound();
+      if (parentGlobalNotFound && parentGlobalNotFound.globalNotFound) {
+        return this.renderRouteNotFound(parentGlobalNotFound.route);
+      }
 
-      const hasMatches = routerState.matches.length > 0;
-      if (!hasMatches) return;
+      const match = this.routeMatch();
+      if (!match) return;
 
-      const matchesToRender = this.getMatch(routerState.matches.slice(1));
-      if (!matchesToRender) return;
-
-      const route: AnyRoute = this.router.getRouteById(matchesToRender.routeId);
-      const currentCmp = (
-        route && route.options.component ? route.options.component() : undefined
-      ) as Type<any>;
-      if (!currentCmp) return;
+      const route = this.route();
+      if (!route) return;
 
       const injector = this.routerContext.getContext(
-        matchesToRender.routeId,
-        matchesToRender,
+        match.routeId,
+        match,
         this.vcr.injector
       );
-
       const environmentInjector = this.routerContext.getEnvContext(
-        matchesToRender.routeId,
+        match.routeId,
         route.options.providers || [],
         this.router.injector
       );
 
-      if (this.cmp !== currentCmp) {
-        this.vcr.clear();
-        this.cmpRef = this.vcr.createComponent(currentCmp, {
-          injector,
-          environmentInjector,
-        });
-        this.cmp = currentCmp;
-        this.router.emit({
-          type: 'onResolved',
-          ...getLocationChangeInfo(routerState),
-        });
-      } else {
-        this.cmpRef?.changeDetectorRef.markForCheck();
-      }
+      this.renderMatch(route, match, injector, environmentInjector);
     });
 
     inject(DestroyRef).onDestroy(() => {
       this.vcr.clear();
-      this.cmp = null;
-      this.cmpRef = null;
+      this.cmpRef = undefined;
+      this.cmp = undefined;
     });
   }
 
-  getMatch(matches: RouterState['matches']) {
-    const idx = matches.findIndex(
-      (match) => match.id === this.routeContext?.id
-    );
-    return matches[idx + 1];
+  private renderRouteNotFound(route: AnyRoute) {
+    this.vcr.clear();
+
+    this.cmp =
+      route.options.notFoundComponent?.() ||
+      this.router.options.defaultNotFoundComponent?.() ||
+      DefaultNotFound;
+
+    if (!this.cmp) return;
+
+    this.cmpRef = this.vcr.createComponent(this.cmp, {
+      injector: this.injector,
+      environmentInjector: this.environmentInjector,
+    });
+  }
+
+  private renderMatch(
+    route: AnyRoute,
+    match: RouterState['matches'][number],
+    injector: Injector,
+    environmentInjector: EnvironmentInjector
+  ) {
+    let cmp: Type<any> | undefined = undefined;
+
+    switch (match.status) {
+      case 'pending': {
+        cmp =
+          route.options.pendingComponent?.() ||
+          this.router.options.defaultPendingComponent?.() ||
+          undefined;
+        break;
+      }
+
+      case 'success':
+        cmp = route.options.component?.();
+        break;
+    }
+
+    if (!cmp) return;
+
+    if (this.cmp !== cmp) {
+      this.vcr.clear();
+
+      this.cmpRef = this.vcr.createComponent(cmp, {
+        injector,
+        environmentInjector,
+      });
+
+      this.cmp = cmp;
+    } else {
+      this.cmpRef?.changeDetectorRef.markForCheck();
+    }
   }
 }

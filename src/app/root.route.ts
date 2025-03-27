@@ -1,5 +1,5 @@
 import { createRootRoute } from 'tanstack-angular-router-experimental';
 
-import { AppComponent } from './app.component';
+import { App } from './app';
 
-export const Route = createRootRoute({ component: () => AppComponent });
+export const Route = createRootRoute({ component: () => App });
