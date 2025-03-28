@@ -235,6 +235,7 @@ export {
   componentTypes,
   getInitialRouterState,
   isNotFound,
+  isRedirect,
   lazyFn,
   notFound,
   redirect,

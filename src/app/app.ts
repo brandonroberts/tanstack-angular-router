@@ -1,6 +1,7 @@
 import { Component } from '@angular/core';
 import {
   Link,
+  linkOptions,
   Outlet,
   RouterDevtools,
 } from 'tanstack-angular-router-experimental';
@@ -10,15 +11,10 @@ import {
   imports: [Outlet, Link, RouterDevtools],
   template: `
     <h1>Welcome to {{ title }}!</h1>
-    <a link="/" class="chau">Home</a>
-    |
-    <a [link]="{ to: '/about', preload: 'intent' }">About</a>
-    |
-    <a [link]="{ to: '/parent' }" [linkActive]="{ exact: false }">Parent 1</a>
-    |
-    <a [link]="{ to: '/protected' }">Protected</a>
-    |
-    <a [link]="{ to: '/login' }">Login</a>
+    @for (link of links; track link.to) {
+      <a [link]="link">{{ link.label }}</a>
+      |
+    }
     <hr />
 
     <outlet />
@@ -37,4 +33,12 @@ import {
 })
 export class App {
   title = 'tanstack-router-angular';
+
+  protected links = linkOptions([
+    { to: '/', label: 'Home' },
+    { to: '/about', preload: 'intent', label: 'About' },
+    { to: '/parent', label: 'Parent', activeOptions: { exact: false } },
+    { to: '/protected', label: 'Protected' },
+    { to: '/login', label: 'Login', search: { redirect: '' } },
+  ]);
 }
