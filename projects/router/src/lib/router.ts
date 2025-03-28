@@ -63,8 +63,11 @@ export function provideRouter(
     },
     provideAppInitializer(() => {
       const router = injectRouter();
-      router.load().then(() => {
-        console.log('initial router load');
+      router.load({ sync: true }).then(() => {
+        // upon initial load, we'll set the router state to idle if it's not already
+        if (router.state.status !== 'idle') {
+          router.__store.setState((s) => ({ ...s, status: 'idle' }));
+        }
       });
       return Promise.resolve();
     }),
