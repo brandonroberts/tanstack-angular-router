@@ -12,7 +12,7 @@ import {
     <h1>Welcome to {{ title }}!</h1>
     <a link="/" class="chau">Home</a>
     |
-    <a link="/about">About</a>
+    <a [link]="{ to: '/about', preload: 'intent' }">About</a>
     |
     <a [link]="{ to: '/parent' }" [linkActive]="{ exact: false }">Parent 1</a>
     |

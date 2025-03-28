@@ -248,7 +248,7 @@ export class Link {
 
   private preloadTimeout: ReturnType<typeof setTimeout> | null = null;
   protected handleMouseEnter(event: MouseEvent) {
-    if (this.disabled() || !this.preload()) return;
+    if (this.disabled() || !this.preload() || this.isActive()) return;
 
     this.preloadTimeout = setTimeout(() => {
       this.preloadTimeout = null;

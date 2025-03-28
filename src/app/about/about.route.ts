@@ -12,8 +12,8 @@ export const AboutRoute = createRoute({
   pendingComponent: () => Spinner,
   loader: async () => {
     const todosService = inject(TodosClient);
-    await new Promise((resolve) => setTimeout(resolve, 5_000));
     const todos = await firstValueFrom(todosService.getTodo(1));
+    await new Promise((resolve) => setTimeout(resolve, 5_000));
     return { todos };
   },
 }).lazy(() => import('./about').then((m) => m.LazyAboutRoute));
