@@ -9,10 +9,17 @@ import {
   untracked,
 } from '@angular/core';
 import {
+  AnyRouter,
+  Constrain,
   deepEqual,
   exactPathTest,
+  InferFrom,
+  InferMaskFrom,
+  InferMaskTo,
+  InferTo,
   LinkOptions,
   preloadWarning,
+  RegisteredRouter,
   removeTrailingSlash,
 } from '@tanstack/router-core';
 import { injectRouter } from './router';
@@ -44,10 +51,14 @@ export class Link {
       value:
         | (Omit<LinkOptions, 'to' | 'activeOptions'> & {
             to: NonNullable<LinkOptions['to']>;
+            activeOptions?: LinkOptions['activeOptions'] & { class?: string };
           })
         | NonNullable<LinkOptions['to']>
     ) => {
-      return (typeof value === 'object' ? value : { to: value }) as LinkOptions;
+      return (typeof value === 'object' ? value : { to: value }) as Omit<
+        LinkOptions,
+        'activeOptions'
+      > & { activeOptions?: LinkOptions['activeOptions'] & { class?: string } };
     },
   });
   linkActiveOptions = input(
@@ -82,17 +93,23 @@ export class Link {
   );
   private userPreload = computed(() => this.linkOptions().preload);
   private userPreloadDelay = computed(() => this.linkOptions().preloadDelay);
-  private exactActiveOptions = computed(() => this.linkActiveOptions().exact);
+
+  private activeOptions = computed(
+    () => this.linkOptions().activeOptions || this.linkActiveOptions() || {}
+  );
+  private exactActiveOptions = computed(() => this.activeOptions().exact);
   private includeHashActiveOptions = computed(
-    () => this.linkActiveOptions().includeHash
+    () => this.activeOptions().includeHash
   );
   private includeSearchActiveOptions = computed(
-    () => this.linkActiveOptions().includeSearch
+    () => this.activeOptions().includeSearch
   );
   private explicitUndefinedActiveOptions = computed(
-    () => this.linkActiveOptions().explicitUndefined
+    () => this.activeOptions().explicitUndefined
   );
-  protected activeClass = computed(() => this.linkActiveOptions().class);
+  protected activeClass = computed(
+    () => this.activeOptions().class || 'active'
+  );
 
   protected type = computed(() => {
     const to = this.to();
@@ -275,3 +292,71 @@ export class Link {
     return e.metaKey || e.altKey || e.ctrlKey || e.shiftKey;
   }
 }
+
+export type ValidateLinkOptions<
+  TRouter extends AnyRouter = RegisteredRouter,
+  TOptions = unknown,
+  TDefaultFrom extends string = string,
+> = Constrain<
+  TOptions,
+  Omit<
+    LinkOptions<
+      TRouter,
+      InferFrom<TOptions, TDefaultFrom>,
+      InferTo<TOptions>,
+      InferMaskFrom<TOptions>,
+      InferMaskTo<TOptions>
+    >,
+    'to' | 'activeOptions'
+  > &
+    Partial<Omit<HTMLAnchorElement, 'search'>> & {
+      label: string;
+      to: NonNullable<
+        LinkOptions<
+          TRouter,
+          InferFrom<TOptions, TDefaultFrom>,
+          InferTo<TOptions>,
+          InferMaskFrom<TOptions>,
+          InferMaskTo<TOptions>
+        >['to']
+      >;
+      activeOptions?: LinkOptions<
+        TRouter,
+        InferFrom<TOptions, TDefaultFrom>,
+        InferTo<TOptions>,
+        InferMaskFrom<TOptions>,
+        InferMaskTo<TOptions>
+      >['activeOptions'] & { class?: string };
+    }
+>;
+
+export type ValidateLinkOptionsArray<
+  TRouter extends AnyRouter = RegisteredRouter,
+  TOptions extends ReadonlyArray<any> = ReadonlyArray<unknown>,
+  TDefaultFrom extends string = string,
+> = {
+  [K in keyof TOptions]: ValidateLinkOptions<
+    TRouter,
+    TOptions[K],
+    TDefaultFrom
+  >;
+};
+
+export type LinkOptionsFnOptions<
+  TOptions,
+  TRouter extends AnyRouter = RegisteredRouter,
+> =
+  TOptions extends ReadonlyArray<any>
+    ? ValidateLinkOptionsArray<TRouter, TOptions>
+    : ValidateLinkOptions<TRouter, TOptions>;
+
+export type LinkOptionsFn = <
+  const TOptions,
+  TRouter extends AnyRouter = RegisteredRouter,
+>(
+  options: LinkOptionsFnOptions<TOptions, TRouter>
+) => TOptions;
+
+export const linkOptions: LinkOptionsFn = (options) => {
+  return options as any;
+};
