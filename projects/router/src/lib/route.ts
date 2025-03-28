@@ -54,7 +54,7 @@ function loaderData({
         (match) => match.routeId === routeId
       );
 
-      return (route && route.loaderData) || {};
+      return (route && route.loaderData) || undefined;
     });
   });
 }
