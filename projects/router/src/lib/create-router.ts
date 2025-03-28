@@ -96,6 +96,19 @@ export class NgRouter<
   routerState = linkedSignal(() => this.state);
   isTransitioning = signal(false);
 
+  private status = computed(() => this.routerState().status);
+  private prevStatus = linkedSignal<'pending' | 'idle', 'pending' | 'idle'>({
+    source: this.status,
+    computation: (src, prev) => prev?.source ?? src,
+  });
+  private location = computed(() => this.routerState().location);
+  private prevLocation = linkedSignal<
+    ReturnType<typeof this.location>,
+    ReturnType<typeof this.location> | undefined
+  >({
+    source: this.location,
+    computation: (src, prev) => prev?.source,
+  });
   private matches = computed(() => this.routerState().matches);
 
   hasPendingMatches = computed(() =>
@@ -144,6 +157,20 @@ export class NgRouter<
         });
       };
     }
+
+    effect(() => {
+      const [prevLocation, location] = [this.prevLocation(), this.location()];
+      if (prevLocation && location.state.key === prevLocation?.state.key) {
+        return;
+      }
+
+      const [prevStatus, status] = [this.prevStatus(), this.status()];
+
+      // when the router transitions from non-idle to idle, we emit a `onRendered` event
+      if (prevStatus !== 'idle' && status === 'idle') {
+        this.emit({ type: 'onRendered', ...getLocationChangeInfo(this.state) });
+      }
+    });
 
     effect((onCleanup) => {
       const unsub = this.__store.subscribe(() => {
