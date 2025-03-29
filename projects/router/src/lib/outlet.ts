@@ -66,8 +66,8 @@ export class Outlet {
     const matchId = this.matchId();
     if (!matchId) return null;
 
-    const routeMatch = this.routeMatch();
-    if (routeMatch) return null;
+    const match = this.match();
+    if (match) return null;
 
     const matches = this.router.matches();
     const parentMatch = matches.find((d) => d.id === matchId);

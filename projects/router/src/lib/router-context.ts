@@ -57,7 +57,7 @@ class RouterContext {
       }
 
       if (route.options?.providers) {
-        providers.push(route.options.providers);
+        providers.push(...route.options.providers);
       }
 
       route = route.parentRoute;
