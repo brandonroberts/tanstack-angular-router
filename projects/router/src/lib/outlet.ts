@@ -1,8 +1,9 @@
 import {
+  ChangeDetectionStrategy,
+  Component,
   ComponentRef,
   computed,
   DestroyRef,
-  Directive,
   effect,
   EnvironmentInjector,
   inject,
@@ -17,7 +18,11 @@ import { DefaultNotFound } from './not-found';
 import { injectRouteContext, injectRouter } from './router';
 import { injectRouterContext } from './router-context';
 
-@Directive({ selector: 'outlet', exportAs: 'outlet' })
+@Component({
+  selector: 'outlet',
+  template: '',
+  changeDetection: ChangeDetectionStrategy.OnPush,
+})
 export class Outlet {
   private router = injectRouter();
   private routerContext = injectRouterContext();
