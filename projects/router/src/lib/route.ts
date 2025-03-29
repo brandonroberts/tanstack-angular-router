@@ -32,6 +32,22 @@ import {
 } from '@tanstack/router-core';
 import { injectRouteContext, injectRouter, RouterContext } from './router';
 
+export type RouteLoaderData<out TId> = <
+  TRouter extends AnyRouter = RegisteredRouter,
+>(opts?: {
+  injector?: Injector;
+}) => Signal<ResolveUseLoaderData<TRouter, TId, false>>;
+export type RouteRouteParams<out TId> = <
+  TRouter extends AnyRouter = RegisteredRouter,
+>(opts?: {
+  injector?: Injector;
+}) => Signal<ResolveUseParams<TRouter, TId, false>>;
+export type RouteRouteSearch<out TId> = <
+  TRouter extends AnyRouter = RegisteredRouter,
+>(opts?: {
+  injector?: Injector;
+}) => Signal<ResolveUseSearch<TRouter, TId, false>>;
+
 function loaderData({
   id,
   injector,
