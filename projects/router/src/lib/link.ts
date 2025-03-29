@@ -49,8 +49,7 @@ export class Link {
     alias: 'link',
     transform: (
       value:
-        | (Omit<LinkOptions, 'to' | 'activeOptions'> & {
-            to: NonNullable<LinkOptions['to']>;
+        | (Omit<LinkOptions, 'activeOptions'> & {
             activeOptions?: LinkOptions['activeOptions'] & { class?: string };
           })
         | NonNullable<LinkOptions['to']>
@@ -312,19 +311,10 @@ export type ValidateLinkOptions<
       InferMaskFrom<TOptions>,
       InferMaskTo<TOptions>
     >,
-    'to' | 'activeOptions'
+    'activeOptions'
   > &
     Partial<Omit<HTMLAnchorElement, 'search'>> & {
-      label: string;
-      to: NonNullable<
-        LinkOptions<
-          TRouter,
-          InferFrom<TOptions, TDefaultFrom>,
-          InferTo<TOptions>,
-          InferMaskFrom<TOptions>,
-          InferMaskTo<TOptions>
-        >['to']
-      >;
+      label?: string | (() => string);
       activeOptions?: LinkOptions<
         TRouter,
         InferFrom<TOptions, TDefaultFrom>,
