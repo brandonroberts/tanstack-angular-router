@@ -1,10 +1,14 @@
 import {
   computed,
+  createEnvironmentInjector,
   Directive,
   effect,
   ElementRef,
+  EnvironmentInjector,
   inject,
   input,
+  Provider,
+  runInInjectionContext,
   signal,
   untracked,
 } from '@angular/core';
@@ -77,6 +81,7 @@ export class Link {
   );
 
   router = injectRouter();
+  environmentInjector = inject(EnvironmentInjector);
   hostElement = inject<ElementRef<HTMLAnchorElement>>(ElementRef);
 
   private location = computed(() => this.router.routerState().location);
@@ -87,6 +92,9 @@ export class Link {
 
   protected disabled = computed(() => this.linkOptions().disabled);
   private to = computed(() => this.linkOptions().to);
+  private toRoute = computed(() => {
+    return this.router.routesByPath[this.to()];
+  });
   private userFrom = computed(() => this.linkOptions().from);
   private userReloadDocument = computed(
     () => this.linkOptions().reloadDocument
@@ -282,10 +290,31 @@ export class Link {
   }
 
   private doPreload() {
-    this.router.preloadRoute(this.navigateOptions()).catch((err) => {
-      console.warn(err);
-      console.warn(preloadWarning);
+    const preloadInjector = this.getPreloadInjector();
+
+    runInInjectionContext(preloadInjector, () => {
+      this.router.preloadRoute(this.navigateOptions()).catch((err) => {
+        console.warn(err);
+        console.warn(preloadWarning);
+      });
     });
+  }
+
+  private getPreloadInjector() {
+    const toRoute = this.toRoute();
+    if (!toRoute) return this.environmentInjector;
+
+    // walk up the route and collect all `options.providers` into an array
+    const providers: Provider[] = [];
+    let route = toRoute;
+    while (route) {
+      if (route.options?.providers) {
+        providers.push(...route.options.providers);
+      }
+      route = route.parentRoute;
+    }
+
+    return createEnvironmentInjector(providers, this.environmentInjector);
   }
 
   private isCtrlEvent(e: MouseEvent) {
