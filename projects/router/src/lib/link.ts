@@ -118,8 +118,9 @@ export class Link {
   });
 
   private from = computed(() => {
-    const [matches, userFrom] = [this.router.matches(), this.userFrom()];
+    const userFrom = this.userFrom();
     if (userFrom) return userFrom;
+    const matches = this.router.matches();
     return matches[matches.length - 1]?.fullPath;
   });
 
@@ -129,7 +130,11 @@ export class Link {
 
   private next = computed(() => {
     const [options] = [this.navigateOptions(), this.currentSearch()];
-    return this.router.buildLocation(options);
+    try {
+      return this.router.buildLocation(options);
+    } catch (err) {
+      return null;
+    }
   });
 
   private preload = computed(() => {
@@ -154,6 +159,8 @@ export class Link {
     if (disabled) return undefined;
 
     const next = this.next();
+    if (!next) return undefined;
+
     return next.maskedLocation
       ? this.router.history.createHref(next.maskedLocation.href)
       : this.router.history.createHref(next.href);
@@ -166,6 +173,9 @@ export class Link {
       this.router.location(),
       this.exactActiveOptions(),
     ];
+
+    if (!next) return false;
+
     if (exact) {
       const testExact = exactPathTest(
         location.pathname,
