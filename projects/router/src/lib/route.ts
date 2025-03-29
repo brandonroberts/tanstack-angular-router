@@ -554,8 +554,8 @@ export class NotFoundRoute<
 function runFnInInjectionContext<TFn extends (...args: any[]) => any>(fn: TFn) {
   const originalFn = fn;
   return (...args: Parameters<TFn>) => {
-    const { context, location } = args[0];
-    const routeInjector = context.getRouteInjector(location.href);
+    const { context, location, route } = args[0];
+    const routeInjector = context.getRouteInjector(route?.id || location.href);
     return runInInjectionContext(routeInjector, originalFn.bind(null, ...args));
   };
 }
