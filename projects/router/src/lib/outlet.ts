@@ -146,7 +146,7 @@ export class Outlet {
       }
 
       case 'success':
-        cmp = route.options.component?.();
+        cmp = route.options.component?.() || Outlet;
         break;
     }
 
