@@ -36,17 +36,17 @@ export type RouteLoaderData<out TId> = <
   TRouter extends AnyRouter = RegisteredRouter,
 >(opts?: {
   injector?: Injector;
-}) => Signal<ResolveUseLoaderData<TRouter, TId, true>>;
+}) => Signal<ResolveUseLoaderData<TRouter, TId, false>>;
 export type RouteRouteParams<out TId> = <
   TRouter extends AnyRouter = RegisteredRouter,
 >(opts?: {
   injector?: Injector;
-}) => Signal<ResolveUseParams<TRouter, TId, true>>;
+}) => Signal<ResolveUseParams<TRouter, TId, false>>;
 export type RouteRouteSearch<out TId> = <
   TRouter extends AnyRouter = RegisteredRouter,
 >(opts?: {
   injector?: Injector;
-}) => Signal<ResolveUseSearch<TRouter, TId, true>>;
+}) => Signal<ResolveUseSearch<TRouter, TId, false>>;
 
 function loaderData({
   id,
@@ -145,9 +145,9 @@ export function routeApi<
   id: ConstrainLiteral<TId, RouteIds<TRouter['routeTree']>>;
   injector?: Injector;
 }): BaseRouteApi<TId, TRouter> & {
-  loaderData: () => Signal<ResolveUseLoaderData<TRouter, TId, true>>;
-  routeParams: () => Signal<ResolveUseParams<TRouter, TId, true>>;
-  routeSearch: () => Signal<ResolveUseSearch<TRouter, TId, true>>;
+  loaderData: () => Signal<ResolveUseLoaderData<TRouter, TId, false>>;
+  routeParams: () => Signal<ResolveUseParams<TRouter, TId, false>>;
+  routeSearch: () => Signal<ResolveUseSearch<TRouter, TId, false>>;
 } {
   !injector && assertInInjectionContext(routeApi);
 
@@ -231,7 +231,7 @@ export class Route<
     TRouter extends AnyRouter = RegisteredRouter,
     const TFrom extends string | undefined = undefined,
   >({ injector }: { injector?: Injector } = {}): Signal<
-    ResolveUseLoaderData<TRouter, TFrom, true>
+    ResolveUseLoaderData<TRouter, TFrom, false>
   > {
     return loaderData({ id: this.id, injector });
   }
@@ -239,9 +239,8 @@ export class Route<
   routeParams<
     TRouter extends AnyRouter = RegisteredRouter,
     const TFrom extends string | undefined = undefined,
-    TStrict extends boolean = true,
   >({ injector }: { injector?: Injector } = {}): Signal<
-    ResolveUseParams<TRouter, TFrom, TStrict>
+    ResolveUseParams<TRouter, TFrom, false>
   > {
     return routeParams({ id: this.id, injector });
   }
@@ -249,9 +248,8 @@ export class Route<
   routeSearch<
     TRouter extends AnyRouter = RegisteredRouter,
     const TFrom extends string | undefined = undefined,
-    TStrict extends boolean = true,
   >({ injector }: { injector?: Injector } = {}): Signal<
-    ResolveUseSearch<TRouter, TFrom, TStrict>
+    ResolveUseSearch<TRouter, TFrom, false>
   > {
     return routeSearch({ id: this.id, injector });
   }
