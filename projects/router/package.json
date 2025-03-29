@@ -1,6 +1,6 @@
 {
   "name": "tanstack-angular-router-experimental",
-  "version": "0.0.9",
+  "version": "0.0.10",
   "peerDependencies": {
     "@angular/core": "^19.0.0",
     "@tanstack/history": "*",

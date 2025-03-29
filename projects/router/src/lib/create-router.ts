@@ -21,7 +21,6 @@ import {
   TrailingSlashOption,
   trimPathRight,
 } from '@tanstack/router-core';
-import { RouteLoaderData, RouteRouteParams, RouteRouteSearch } from './route';
 
 declare module '@tanstack/router-core' {
   export interface UpdatableRouteOptionsExtensions {
@@ -69,14 +68,6 @@ declare module '@tanstack/router-core' {
      * @link [Guide](https://tanstack.com/router/latest/docs/framework/react/guide/data-loading#handling-errors-with-routeoptionsoncatch)
      */
     defaultOnCatch?: (error: Error) => void;
-  }
-  export interface RouteExtensions<
-    TId extends string,
-    TFullPath extends string,
-  > {
-    loaderData: RouteLoaderData<TId>;
-    routeParams: RouteRouteParams<TId>;
-    routeSearch: RouteRouteSearch<TId>;
   }
 }
 
