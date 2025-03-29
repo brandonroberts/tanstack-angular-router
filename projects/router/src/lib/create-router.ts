@@ -105,21 +105,21 @@ export class NgRouter<
   routerState = linkedSignal(() => this.state);
   isTransitioning = signal(false);
 
-  private status = computed(() => this.routerState().status);
-  private prevStatus = linkedSignal<'pending' | 'idle', 'pending' | 'idle'>({
+  status = computed(() => this.routerState().status);
+  prevStatus = linkedSignal<'pending' | 'idle', 'pending' | 'idle'>({
     source: this.status,
     computation: (src, prev) => prev?.source ?? src,
   });
-  private location = computed(() => this.routerState().location);
-  private prevLocation = linkedSignal<
+  location = computed(() => this.routerState().location);
+  prevLocation = linkedSignal<
     ReturnType<typeof this.location>,
     ReturnType<typeof this.location> | undefined
   >({
     source: this.location,
-    computation: (src, prev) => prev?.source,
+    computation: (_, prev) => prev?.source,
   });
-  private matches = computed(() => this.routerState().matches);
-
+  matches = computed(() => this.routerState().matches);
+  pendingMatches = computed(() => this.routerState().pendingMatches);
   hasPendingMatches = computed(() =>
     this.matches().some((match) => match.status === 'pending')
   );
@@ -256,9 +256,5 @@ export class NgRouter<
         }));
       }
     });
-  }
-
-  getRouteById(routeId: string) {
-    return this.routesById[routeId];
   }
 }

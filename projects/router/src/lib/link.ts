@@ -3,7 +3,6 @@ import {
   Directive,
   effect,
   ElementRef,
-  EnvironmentInjector,
   inject,
   input,
   signal,
@@ -77,21 +76,13 @@ export class Link {
     }
   );
 
-  router = injectRouter();
-  environmentInjector = inject(EnvironmentInjector);
+  private router = injectRouter();
   hostElement = inject<ElementRef<HTMLAnchorElement>>(ElementRef);
 
-  private location = computed(() => this.router.routerState().location);
-  private matches = computed(() => this.router.routerState().matches);
-  private currentSearch = computed(
-    () => this.router.routerState().location.search
-  );
+  private currentSearch = computed(() => this.router.location().search);
 
   protected disabled = computed(() => this.linkOptions().disabled);
   private to = computed(() => this.linkOptions().to);
-  private toRoute = computed(() => {
-    return this.router.routesByPath[this.to()];
-  });
   private userFrom = computed(() => this.linkOptions().from);
   private userReloadDocument = computed(
     () => this.linkOptions().reloadDocument
@@ -129,7 +120,7 @@ export class Link {
   private from = computed(() => {
     const userFrom = this.userFrom();
     if (userFrom) return userFrom;
-    const matches = this.matches();
+    const matches = this.router.matches();
     return matches[matches.length - 1]?.fullPath;
   });
 
@@ -173,7 +164,7 @@ export class Link {
   isActive = computed(() => {
     const [next, location, exact] = [
       this.next(),
-      this.location(),
+      this.router.location(),
       this.exactActiveOptions(),
     ];
     if (exact) {

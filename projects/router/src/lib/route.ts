@@ -67,11 +67,7 @@ function loaderData({
     }
 
     return computed(() => {
-      const routerState = router.routerState();
-      const route = routerState.matches.find(
-        (match) => match.routeId === routeId
-      );
-
+      const route = router.matches().find((match) => match.routeId === routeId);
       return (route && route.loaderData) || undefined;
     });
   });
@@ -96,11 +92,7 @@ function routeSearch({
     }
 
     return computed(() => {
-      const routerState = router.routerState();
-      const route = routerState.matches.find(
-        (match) => match.routeId === routeId
-      );
-
+      const route = router.matches().find((match) => match.routeId === routeId);
       return (route && route.search) || ({} as Record<string, unknown>);
     });
   });
@@ -125,11 +117,7 @@ function routeParams({
     }
 
     return computed(() => {
-      const routerState = router.routerState();
-      const route = routerState.matches.find(
-        (match) => match.routeId === routeId
-      );
-
+      const route = router.matches().find((match) => match.routeId === routeId);
       return (route && route.params) || {};
     });
   });
@@ -405,17 +393,7 @@ class RootRoute<
     >
   ) {
     if (options?.loader) {
-      const originalLoader = options.loader;
-      options.loader = (...args: Parameters<typeof originalLoader>) => {
-        const { context, route } = args[0];
-        const routeInjector = (
-          context as RouterContext<TRouterContext>
-        ).getRouteInjector(route.id);
-        return runInInjectionContext(
-          routeInjector,
-          originalLoader.bind(null, ...args)
-        );
-      };
+      options.loader = runFnInInjectionContext(options.loader);
     }
 
     super(options);

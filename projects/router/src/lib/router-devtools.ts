@@ -12,11 +12,11 @@ import {
   untracked,
 } from '@angular/core';
 import { TanStackRouterDevtoolsCore } from '@tanstack/router-devtools-core';
-import { Router } from './router';
+import { injectRouter } from './router';
 
 @Directive({ selector: 'router-devtools', host: { style: 'display: block;' } })
 export class RouterDevtools {
-  private injectedRouter = inject(Router);
+  private injectedRouter = injectRouter();
   private host = inject<ElementRef<HTMLDivElement>>(ElementRef);
   private ngZone = inject(NgZone);
 

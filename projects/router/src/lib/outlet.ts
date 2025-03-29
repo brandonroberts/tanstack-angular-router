@@ -31,17 +31,16 @@ export class Outlet {
   private injector = inject(Injector);
   private environmentInjector = inject(EnvironmentInjector);
 
-  private fullMatches = computed(() => this.router.routerState().matches);
   private matchId = computed(
-    () => this.routeContext?.id || this.fullMatches()[0]?.id
+    () => this.routeContext?.id || this.router.matches()[0]?.id
   );
 
   /**
    * NOTE: we slice off the first match because we let Angular renders the root route
    */
-  private matches = computed(() => this.fullMatches().slice(1));
+  private matches = computed(() => this.router.matches().slice(1));
   private pendingMatches = computed(() =>
-    this.router.routerState().pendingMatches?.slice(1)
+    this.router.pendingMatches()?.slice(1)
   );
   private match = computed(() => {
     const matches = this.matches();
@@ -67,10 +66,10 @@ export class Outlet {
     const matchId = this.matchId();
     if (!matchId) return null;
 
-    const match = this.match();
-    if (match) return null;
+    const routeMatch = this.routeMatch();
+    if (routeMatch) return null;
 
-    const matches = this.fullMatches();
+    const matches = this.router.matches();
     const parentMatch = matches.find((d) => d.id === matchId);
     invariant(
       parentMatch,

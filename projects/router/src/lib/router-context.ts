@@ -13,21 +13,25 @@ class RouterContext {
   private readonly injectors = new Map<string, Injector>();
   private readonly envInjectors = new Map<string, EnvironmentInjector>();
 
-  private setContext(routeId: string, injector: Injector) {
-    this.injectors.set(routeId, injector);
-  }
-
   getContext(routeId: string, context: Record<string, any>, parent: Injector) {
-    const injector = this.injectors.get(routeId);
+    const existingInjector = this.injectors.get(routeId);
+    if (existingInjector) return existingInjector;
 
-    if (injector) {
-      return injector;
-    }
+    const injector = Injector.create({
+      providers: [
+        {
+          provide: ROUTE_CONTEXT,
+          useValue: { id: context['routeId'], params: context['params'] },
+        },
+      ],
+      parent,
+      name: routeId,
+    });
 
-    const newInjector = this.getInjector(routeId, context, parent);
-    this.setContext(routeId, newInjector);
+    // cache
+    this.injectors.set(routeId, injector);
 
-    return newInjector;
+    return injector;
   }
 
   getEnvContext(
@@ -36,58 +40,35 @@ class RouterContext {
     parent: EnvironmentInjector,
     router: AnyRouter
   ) {
-    const injector = this.envInjectors.get(routeId);
+    const existingInjector = this.envInjectors.get(routeId);
+    if (existingInjector) return existingInjector;
 
-    if (injector) {
-      return injector;
-    }
+    const routeByRouteId =
+      router.routesById[routeId] || router.routesByPath[routeId];
+    let route = routeByRouteId;
 
-    const route = router.routesById[routeId] || router.routesByPath[routeId];
-    let r = route;
-
-    while (r) {
-      const rInjector = this.envInjectors.get(r.id);
-      if (rInjector) {
-        parent = rInjector;
-        r = r.parentRoute;
+    // walk up the route hierarchy to build the providers
+    while (route) {
+      const routeInjector = this.envInjectors.get(route.id);
+      if (routeInjector) {
+        parent = routeInjector;
+        route = route.parentRoute;
         continue;
       }
 
-      if (r.options?.providers) {
-        providers.push(...r.options.providers);
+      if (route.options?.providers) {
+        providers.push(route.options.providers);
       }
-      r = r.parentRoute;
+
+      route = route.parentRoute;
     }
 
-    const newInjector = this.getEnvInjector(routeId, providers, parent);
-    this.envInjectors.set(routeId, newInjector);
+    const envInjector = createEnvironmentInjector(providers, parent, routeId);
 
-    return newInjector;
-  }
+    // cache
+    this.envInjectors.set(routeId, envInjector);
 
-  private getInjector(
-    routeId: string,
-    context: Record<string, any>,
-    parentInjector: Injector
-  ) {
-    return Injector.create({
-      providers: [
-        {
-          provide: ROUTE_CONTEXT,
-          useValue: { id: context['routeId'], params: context['params'] },
-        },
-      ],
-      parent: parentInjector,
-      name: routeId,
-    });
-  }
-
-  getEnvInjector(
-    routeId: string,
-    providers: Provider[] = [],
-    injector: EnvironmentInjector
-  ) {
-    return createEnvironmentInjector(providers, injector, routeId);
+    return envInjector;
   }
 }
 
