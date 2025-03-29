@@ -46,6 +46,13 @@ class RouterContext {
     let r = route;
 
     while (r) {
+      const rInjector = this.envInjectors.get(r.id);
+      if (rInjector) {
+        parent = rInjector;
+        r = r.parentRoute;
+        continue;
+      }
+
       if (r.options?.providers) {
         providers.push(...r.options.providers);
       }
