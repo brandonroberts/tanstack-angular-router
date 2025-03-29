@@ -22,6 +22,8 @@ import {
   ResolveUseLoaderData,
   ResolveUseParams,
   ResolveUseSearch,
+  rootRouteId,
+  RootRouteId,
   RootRouteOptions,
   RouteById,
   RouteConstraints,
@@ -29,6 +31,22 @@ import {
   RouteOptions,
 } from '@tanstack/router-core';
 import { injectRouteContext, injectRouter, RouterContext } from './router';
+
+export type RouteLoaderData<out TId> = <
+  TRouter extends AnyRouter = RegisteredRouter,
+>(opts?: {
+  injector?: Injector;
+}) => Signal<ResolveUseLoaderData<TRouter, TId, true>>;
+export type RouteRouteParams<out TId> = <
+  TRouter extends AnyRouter = RegisteredRouter,
+>(opts?: {
+  injector?: Injector;
+}) => Signal<ResolveUseParams<TRouter, TId, true>>;
+export type RouteRouteSearch<out TId> = <
+  TRouter extends AnyRouter = RegisteredRouter,
+>(opts?: {
+  injector?: Injector;
+}) => Signal<ResolveUseSearch<TRouter, TId, true>>;
 
 function loaderData({
   id,
@@ -127,9 +145,9 @@ export function routeApi<
   id: ConstrainLiteral<TId, RouteIds<TRouter['routeTree']>>;
   injector?: Injector;
 }): BaseRouteApi<TId, TRouter> & {
-  loaderData: () => Signal<ResolveUseLoaderData<TRouter, TId, false>>;
-  routeParams: () => Signal<ResolveUseParams<TRouter, TId, false>>;
-  routeSearch: () => Signal<ResolveUseSearch<TRouter, TId, false>>;
+  loaderData: () => Signal<ResolveUseLoaderData<TRouter, TId, true>>;
+  routeParams: () => Signal<ResolveUseParams<TRouter, TId, true>>;
+  routeSearch: () => Signal<ResolveUseSearch<TRouter, TId, true>>;
 } {
   !injector && assertInInjectionContext(routeApi);
 
@@ -152,7 +170,7 @@ export function routeApi<
   });
 }
 
-class Route<
+export class Route<
   in out TParentRoute extends RouteConstraints['TParentRoute'] = AnyRoute,
   in out TPath extends RouteConstraints['TPath'] = '/',
   in out TFullPath extends RouteConstraints['TFullPath'] = ResolveFullPath<
@@ -213,7 +231,7 @@ class Route<
     TRouter extends AnyRouter = RegisteredRouter,
     const TFrom extends string | undefined = undefined,
   >({ injector }: { injector?: Injector } = {}): Signal<
-    ResolveUseLoaderData<TRouter, TFrom, false>
+    ResolveUseLoaderData<TRouter, TFrom, true>
   > {
     return loaderData({ id: this.id, injector });
   }
@@ -221,7 +239,7 @@ class Route<
   routeParams<
     TRouter extends AnyRouter = RegisteredRouter,
     const TFrom extends string | undefined = undefined,
-    TStrict extends boolean = false,
+    TStrict extends boolean = true,
   >({ injector }: { injector?: Injector } = {}): Signal<
     ResolveUseParams<TRouter, TFrom, TStrict>
   > {
@@ -231,7 +249,7 @@ class Route<
   routeSearch<
     TRouter extends AnyRouter = RegisteredRouter,
     const TFrom extends string | undefined = undefined,
-    TStrict extends boolean = false,
+    TStrict extends boolean = true,
   >({ injector }: { injector?: Injector } = {}): Signal<
     ResolveUseSearch<TRouter, TFrom, TStrict>
   > {
@@ -327,7 +345,7 @@ export class LazyRoute<TRoute extends AnyRoute> {
   loaderData<TRouter extends AnyRouter = RegisteredRouter>({
     injector,
   }: { injector?: Injector } = {}): Signal<
-    ResolveUseLoaderData<TRouter, TRoute['id'], false>
+    ResolveUseLoaderData<TRouter, TRoute['id'], true>
   > {
     return loaderData({ id: this.options.id, injector });
   }
@@ -335,7 +353,7 @@ export class LazyRoute<TRoute extends AnyRoute> {
   routeParams<TRouter extends AnyRouter = RegisteredRouter>({
     injector,
   }: { injector?: Injector } = {}): Signal<
-    ResolveUseParams<TRouter, TRoute['id'], false>
+    ResolveUseParams<TRouter, TRoute['id'], true>
   > {
     return routeParams({ id: this.options.id, injector });
   }
@@ -343,7 +361,7 @@ export class LazyRoute<TRoute extends AnyRoute> {
   routeSearch<TRouter extends AnyRouter = RegisteredRouter>({
     injector,
   }: { injector?: Injector } = {}): Signal<
-    ResolveUseSearch<TRouter, TRoute['id'], false>
+    ResolveUseSearch<TRouter, TRoute['id'], true>
   > {
     return routeSearch({ id: this.options.id, injector });
   }
@@ -403,6 +421,30 @@ class RootRoute<
     }
 
     super(options);
+  }
+
+  loaderData<TRouter extends AnyRouter = RegisteredRouter>({
+    injector,
+  }: { injector?: Injector } = {}): Signal<
+    ResolveUseLoaderData<TRouter, RootRouteId, false>
+  > {
+    return loaderData({ id: rootRouteId, injector });
+  }
+
+  routeParams<TRouter extends AnyRouter = RegisteredRouter>({
+    injector,
+  }: { injector?: Injector } = {}): Signal<
+    ResolveUseParams<TRouter, RootRouteId, false>
+  > {
+    return routeParams({ id: rootRouteId, injector });
+  }
+
+  routeSearch<TRouter extends AnyRouter = RegisteredRouter>({
+    injector,
+  }: { injector?: Injector } = {}): Signal<
+    ResolveUseSearch<TRouter, RootRouteId, false>
+  > {
+    return routeSearch({ id: rootRouteId, injector });
   }
 }
 
