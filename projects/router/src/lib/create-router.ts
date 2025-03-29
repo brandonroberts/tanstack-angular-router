@@ -1,15 +1,18 @@
 import { isPlatformBrowser } from '@angular/common';
 import {
+  afterNextRender,
   ApplicationRef,
   computed,
   effect,
   EnvironmentInjector,
   inject,
   linkedSignal,
+  NgZone,
   PLATFORM_ID,
   Provider,
   signal,
   Type,
+  untracked,
 } from '@angular/core';
 import type { RouterHistory } from '@tanstack/history';
 import {
@@ -100,6 +103,7 @@ export class NgRouter<
   injector = inject(EnvironmentInjector);
   private platformId = inject(PLATFORM_ID);
   private appRef = inject(ApplicationRef);
+  private zone = inject(NgZone);
 
   historyState = linkedSignal(() => this.history);
   routerState = linkedSignal(() => this.state);
@@ -157,15 +161,33 @@ export class NgRouter<
 
     if (isPlatformBrowser(this.platformId)) {
       this.startTransition = (fn: () => void) => {
-        this.isTransitioning.set(true);
-        // NOTE: not quite the same as `React.startTransition` but close enough
-        queueMicrotask(() => {
+        this.zone.runOutsideAngular(() => {
+          this.isTransitioning.set(true);
           fn();
           this.isTransitioning.set(false);
           this.appRef.tick();
         });
       };
     }
+
+    afterNextRender(() => {
+      untracked(() => {
+        try {
+          this.load()
+            .then(() => {
+              // upon initial load, we'll set the router state to idle if it's not already
+              if (this.state.status !== 'idle') {
+                this.__store.setState((s) => ({ ...s, status: 'idle' }));
+              }
+            })
+            .catch((err) => {
+              console.error(err);
+            });
+        } catch (err) {
+          console.error(err);
+        }
+      });
+    });
 
     effect(() => {
       const [prevLocation, location] = [this.prevLocation(), this.location()];

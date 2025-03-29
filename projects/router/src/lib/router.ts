@@ -4,7 +4,6 @@ import {
   InjectionToken,
   Injector,
   makeEnvironmentProviders,
-  provideAppInitializer,
   Provider,
   Type,
 } from '@angular/core';
@@ -68,16 +67,6 @@ export function provideRouter(
         return router;
       },
     },
-    provideAppInitializer(() => {
-      const router = injectRouter();
-      router.load({ sync: true }).then(() => {
-        // upon initial load, we'll set the router state to idle if it's not already
-        if (router.state.status !== 'idle') {
-          router.__store.setState((s) => ({ ...s, status: 'idle' }));
-        }
-      });
-      return Promise.resolve();
-    }),
   ]);
 }
 
