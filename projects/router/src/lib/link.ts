@@ -118,9 +118,8 @@ export class Link {
   });
 
   private from = computed(() => {
-    const userFrom = this.userFrom();
+    const [matches, userFrom] = [this.router.matches(), this.userFrom()];
     if (userFrom) return userFrom;
-    const matches = this.router.matches();
     return matches[matches.length - 1]?.fullPath;
   });
 
