@@ -50,15 +50,22 @@ export function provideRouter(
       useFactory: () => {
         const injector = inject(EnvironmentInjector);
         const routerContext = injectRouterContext();
-        return createRouter({
+        const router = createRouter({
           ...options,
           context: {
             ...options.context,
             getRouteInjector(routeId: string, providers: Provider[] = []) {
-              return routerContext.getEnvContext(routeId, providers, injector);
+              return routerContext.getEnvContext(
+                routeId,
+                providers,
+                injector,
+                router
+              );
             },
           },
         });
+
+        return router;
       },
     },
     provideAppInitializer(() => {

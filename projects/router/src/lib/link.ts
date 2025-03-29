@@ -1,14 +1,11 @@
 import {
   computed,
-  createEnvironmentInjector,
   Directive,
   effect,
   ElementRef,
   EnvironmentInjector,
   inject,
   input,
-  Provider,
-  runInInjectionContext,
   signal,
   untracked,
 } from '@angular/core';
@@ -290,31 +287,10 @@ export class Link {
   }
 
   private doPreload() {
-    const preloadInjector = this.getPreloadInjector();
-
-    runInInjectionContext(preloadInjector, () => {
-      this.router.preloadRoute(this.navigateOptions()).catch((err) => {
-        console.warn(err);
-        console.warn(preloadWarning);
-      });
+    this.router.preloadRoute(this.navigateOptions()).catch((err) => {
+      console.warn(err);
+      console.warn(preloadWarning);
     });
-  }
-
-  private getPreloadInjector() {
-    const toRoute = this.toRoute();
-    if (!toRoute) return this.environmentInjector;
-
-    // walk up the route and collect all `options.providers` into an array
-    const providers: Provider[] = [];
-    let route = toRoute;
-    while (route) {
-      if (route.options?.providers) {
-        providers.push(...route.options.providers);
-      }
-      route = route.parentRoute;
-    }
-
-    return createEnvironmentInjector(providers, this.environmentInjector);
   }
 
   private isCtrlEvent(e: MouseEvent) {

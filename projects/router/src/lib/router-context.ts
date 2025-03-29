@@ -6,6 +6,7 @@ import {
   Injector,
   Provider,
 } from '@angular/core';
+import { AnyRouter } from '@tanstack/router-core';
 import { ROUTE_CONTEXT } from './router';
 
 class RouterContext {
@@ -32,12 +33,23 @@ class RouterContext {
   getEnvContext(
     routeId: string,
     providers: Provider[],
-    parent: EnvironmentInjector
+    parent: EnvironmentInjector,
+    router: AnyRouter
   ) {
     const injector = this.envInjectors.get(routeId);
 
     if (injector) {
       return injector;
+    }
+
+    const route = router.routesById[routeId] || router.routesByPath[routeId];
+    let r = route;
+
+    while (r) {
+      if (r.options?.providers) {
+        providers.push(...r.options.providers);
+      }
+      r = r.parentRoute;
     }
 
     const newInjector = this.getEnvInjector(routeId, providers, parent);

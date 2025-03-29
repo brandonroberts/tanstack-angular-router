@@ -104,7 +104,8 @@ export class Outlet {
       const environmentInjector = this.routerContext.getEnvContext(
         match.routeId,
         route.options.providers || [],
-        this.router.injector
+        this.router.injector,
+        this.router
       );
 
       this.renderMatch(route, match, injector, environmentInjector);
