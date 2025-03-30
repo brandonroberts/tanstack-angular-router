@@ -254,6 +254,12 @@ export { match } from './match';
 export { isRedirect, redirect } from '@tanstack/router-core';
 
 export {
+  LazyRoute,
+  createFileRoute,
+  createLazyFileRoute,
+  createLazyRoute,
+} from './file-route';
+export {
   NotFoundRoute,
   RootRoute,
   Route,
