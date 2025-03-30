@@ -145,7 +145,9 @@ export class RouteMatch {
   private matchRoute = computed(
     () => this.router.routesById[this.matchState().routeId]!
   );
-  protected match = computed(() => this.matchState().match);
+  protected match = computed(() => this.matchState().match, {
+    equal: (a, b) => a.id === b.id && a.status === b.status,
+  });
   protected matchLoadResource = resource({
     request: this.match,
     loader: ({ request }) => {
