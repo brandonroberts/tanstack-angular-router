@@ -13,6 +13,7 @@ import {
   type AnyRoute,
   AnyRouter,
   CreateRouterFn,
+  rootRouteId,
   RouterConstructorOptions,
   RouterCore,
   RouterState,
@@ -83,14 +84,12 @@ export function injectRouterState() {
   return inject(ROUTER_STATE);
 }
 
-export function provideRouter(router: ReturnType<CreateRouterFn>) {
+export function provideRouter(router: AnyRouter) {
   return [
     { provide: ROUTER, useValue: router },
     {
       provide: ROUTER_STATE,
-      useFactory: () => {
-        return injectStore(router.__store, (state) => state);
-      },
+      useFactory: () => injectStore(router.__store, (state) => state),
     },
   ];
 }
@@ -159,21 +158,32 @@ export class NgRouter<
 
     // walk up the route hierarchy to build the providers
     while (route) {
-      const routeInjector = this.envInjectors.get(route.id);
-      if (routeInjector) {
-        parent = routeInjector;
-        route = route.parentRoute;
-        continue;
-      }
-
       if (route.options?.providers) {
         providers.push(...route.options.providers);
+      }
+
+      const parentInjector = route.parentRoute
+        ? this.envInjectors.get(route.parentRoute.id)
+        : null;
+
+      if (parentInjector) {
+        parent = parentInjector;
+        break;
       }
 
       route = route.parentRoute;
     }
 
     const envInjector = createEnvironmentInjector(providers, parent, routeId);
+
+    // if routeId is rootRouteId, we'll switch existing injectors' parent to the __root__ injector
+    if (routeId === rootRouteId) {
+      this.envInjectors.forEach((ele) => {
+        if ('parent' in ele && ele.parent === parent) {
+          ele.parent = envInjector;
+        }
+      });
+    }
 
     // cache
     this.envInjectors.set(routeId, envInjector);

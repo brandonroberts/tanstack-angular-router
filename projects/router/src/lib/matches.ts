@@ -20,8 +20,6 @@ import {
   MakeRouteMatchUnion,
   MaskOptions,
   RegisteredRouter,
-  ResolveRelativePath,
-  RouteByPath,
   RouterState,
   MatchRouteOptions as TanstackMatchRouteOptions,
   ToSubOptionsProps,
@@ -157,7 +155,9 @@ export class MatchRoute<
       const [params] = [this.params(), this.status()];
       if (!params) return;
 
-      const ref = this.vcr.createEmbeddedView(this.templateRef, { params });
+      const ref = this.vcr.createEmbeddedView(this.templateRef, {
+        match: params,
+      });
       ref.markForCheck();
       onCleanup(() => ref.destroy());
     });
@@ -172,12 +172,7 @@ export class MatchRoute<
   >(
     _: MatchRoute<TRouter, TFrom, TTo, TMaskFrom, TMaskTo>,
     ctx: unknown
-  ): ctx is {
-    params: RouteByPath<
-      TRouter['routeTree'],
-      ResolveRelativePath<TFrom, NoInfer<TTo>>
-    >;
-  } {
+  ): ctx is { match: boolean } {
     return true;
   }
 }

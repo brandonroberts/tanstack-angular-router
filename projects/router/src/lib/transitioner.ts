@@ -1,6 +1,7 @@
 import { DOCUMENT } from '@angular/common';
 import {
   afterNextRender,
+  ChangeDetectorRef,
   computed,
   DestroyRef,
   Directive,
@@ -19,6 +20,7 @@ export class Transitioner {
   private router = injectRouter();
   private destroyRef = inject(DestroyRef);
   private document = inject(DOCUMENT);
+  private cdr = inject(ChangeDetectorRef);
 
   private hasPendingMatches = routerState({
     select: (s) => s.matches.some((d) => d.status === 'pending'),
@@ -56,6 +58,7 @@ export class Transitioner {
         this.isTransitioning.set(true);
         fn();
         this.isTransitioning.set(false);
+        this.cdr.detectChanges();
       };
     }
 
