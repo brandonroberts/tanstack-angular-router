@@ -342,23 +342,14 @@ export class RouteMatch {
   }
 }
 
-/**
- * /dashboard layout
- *   outlet
- *     route-match
- *       /dashboard/ index
- *       /dashboard/invoices
- *
- */
-
 @Component({
   selector: 'outlet,Outlet',
   template: `
-    @if (notFoundComponentData(); as notFoundComponentData) {
-      <ng-container
-        [ngComponentOutlet]="notFoundComponentData.component"
-        [ngComponentOutletInjector]="notFoundComponentData.injector"
-      />
+    @if (false) {
+      <!--      <ng-container-->
+      <!--        [ngComponentOutlet]="notFoundComponentData.component"-->
+      <!--        [ngComponentOutletInjector]="notFoundComponentData.injector"-->
+      <!--      />-->
     } @else if (childMatchId()) {
       @let childMatchId = this.childMatchId()!;
       @if (childMatchId === rootRouteId) {
@@ -395,64 +386,64 @@ export class Outlet {
 
   private route = computed(() => this.router.routesById[this.routeId()]!);
 
-  private parentGlobalNotFound = routerState({
-    select: (s) => {
-      const closestMatchId = untracked(this.closestMatch.matchId);
-      const matches = s.matches;
-      const parentMatch = matches.find((d) => d.id === closestMatchId);
-
-      if (!parentMatch) {
-        if (this.closestMatch['cmp']) {
-          warning(
-            false,
-            `Could not find parent match for matchId "${closestMatchId}". Please file an issue!`
-          );
-        }
-        return false;
-      }
-
-      return parentMatch.globalNotFound;
-    },
-  });
-
-  protected notFoundComponentData = computed(() => {
-    const parentGlobalNotFound = this.parentGlobalNotFound();
-    if (!parentGlobalNotFound) return null;
-
-    const route = this.route();
-    let notFoundCmp: Type<any> | undefined = undefined;
-
-    if (!route.options.notFoundComponent) {
-      notFoundCmp = this.router.options.defaultNotFoundComponent?.();
-      if (!notFoundCmp) {
-        if (this.isDevMode) {
-          warning(
-            route.options.notFoundComponent,
-            `A notFoundError was encountered on the route with ID "${route.id}", but a notFoundComponent option was not configured, nor was a router level defaultNotFoundComponent configured. Consider configuring at least one of these to avoid TanStack Router's overly generic defaultNotFoundComponent (<p>Page not found</p>)`
-          );
-        }
-        notFoundCmp = DefaultNotFound;
-      }
-    } else {
-      notFoundCmp = route.options.notFoundComponent?.();
-    }
-
-    if (!notFoundCmp) return null;
-
-    const injector = this.router.getRouteInjector(
-      route.id + '-not-found',
-      this.vcr.injector,
-      [{ provide: NOT_FOUND_COMPONENT_CONTEXT, useValue: { data: undefined } }]
-    );
-
-    return { component: notFoundCmp, injector };
-  });
+  // private parentGlobalNotFound = routerState({
+  //   select: (s) => {
+  //     const closestMatchId = untracked(this.closestMatch.matchId);
+  //     const matches = s.matches;
+  //     const parentMatch = matches.find((d) => d.id === closestMatchId);
+  //
+  //     if (!parentMatch) {
+  //       if (this.closestMatch['cmp']) {
+  //         warning(
+  //           false,
+  //           `Could not find parent match for matchId "${closestMatchId}". Please file an issue!`
+  //         );
+  //       }
+  //       return false;
+  //     }
+  //
+  //     return parentMatch.globalNotFound;
+  //   },
+  // });
+  //
+  // protected notFoundComponentData = computed(() => {
+  //   const parentGlobalNotFound = this.parentGlobalNotFound();
+  //   if (!parentGlobalNotFound) return null;
+  //
+  //   const route = this.route();
+  //   let notFoundCmp: Type<any> | undefined = undefined;
+  //
+  //   if (!route.options.notFoundComponent) {
+  //     notFoundCmp = this.router.options.defaultNotFoundComponent?.();
+  //     if (!notFoundCmp) {
+  //       if (this.isDevMode) {
+  //         warning(
+  //           route.options.notFoundComponent,
+  //           `A notFoundError was encountered on the route with ID "${route.id}", but a notFoundComponent option was not configured, nor was a router level defaultNotFoundComponent configured. Consider configuring at least one of these to avoid TanStack Router's overly generic defaultNotFoundComponent (<p>Page not found</p>)`
+  //         );
+  //       }
+  //       notFoundCmp = DefaultNotFound;
+  //     }
+  //   } else {
+  //     notFoundCmp = route.options.notFoundComponent?.();
+  //   }
+  //
+  //   if (!notFoundCmp) return null;
+  //
+  //   const injector = this.router.getRouteInjector(
+  //     route.id + '-not-found',
+  //     this.vcr.injector,
+  //     [{ provide: NOT_FOUND_COMPONENT_CONTEXT, useValue: { data: undefined } }]
+  //   );
+  //
+  //   return { component: notFoundCmp, injector };
+  // });
 
   protected childMatchId = routerState({
     select: (s) => {
       const matches = s.matches;
       const index = matches.findIndex(
-        (d) => d.id === this.closestMatch.matchId()
+        (d) => d.id === untracked(this.closestMatch.matchId)
       );
       return matches[index + 1]?.id;
     },
