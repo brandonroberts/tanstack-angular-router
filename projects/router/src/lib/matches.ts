@@ -1,5 +1,6 @@
 import {
   assertInInjectionContext,
+  ComponentRef,
   computed,
   Directive,
   effect,
@@ -37,32 +38,29 @@ export class Matches {
   private vcr = inject(ViewContainerRef);
 
   private matchId = routerState({ select: (s) => s.matches[0]?.id });
-  private hasPendingMatches = routerState({
-    select: (s) => s.pendingMatches?.length,
-  });
 
   constructor() {
     effect((onCleanup) => {
-      const [matchId, hasPendingMatches] = [
-        this.matchId(),
-        this.hasPendingMatches(),
-      ];
+      const matchId = this.matchId();
+      if (!matchId) return;
 
       try {
-        if (hasPendingMatches && this.router.options.defaultPendingComponent) {
-          const ref = this.vcr.createComponent(
+        let ref: ComponentRef<any> | undefined = undefined;
+
+        if (this.router.options.defaultPendingComponent) {
+          ref = this.vcr.createComponent(
             this.router.options.defaultPendingComponent()
           );
           ref.changeDetectorRef.markForCheck();
-          onCleanup(() => ref.destroy());
-          return;
         }
 
-        if (!matchId) return;
-        const ref = this.vcr.createComponent(RouteMatch);
-        ref.setInput('matchId', matchId);
-        ref.changeDetectorRef.markForCheck();
-        onCleanup(() => ref.destroy());
+        this.router.getMatch(matchId)?.loadPromise?.then(() => {
+          ref?.destroy();
+          ref = this.vcr.createComponent(RouteMatch);
+          ref.setInput('matchId', matchId);
+          ref.changeDetectorRef.markForCheck();
+        });
+        onCleanup(() => ref?.destroy());
       } catch (err) {
         console.error(err);
         const errorCmp =
