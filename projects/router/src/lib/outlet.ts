@@ -306,6 +306,7 @@ export class RouteMatch {
             this.matchRoute().options.providers || [],
             this.router
           );
+          cmp = currentCmp;
           cmpRef = this.vcr.createComponent(currentCmp, {
             injector,
             environmentInjector,
