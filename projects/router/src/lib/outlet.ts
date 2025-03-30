@@ -370,19 +370,17 @@ export class RouteMatch {
       />
     } @else {
       @if (childMatchId(); as childMatchId) {
-        <ng-template [key]="childMatchId">
-          @if (childMatchId === rootRouteId) {
-            @if (matchLoadResource.isLoading()) {
-              @if (defaultPendingComponent) {
-                <ng-container [ngComponentOutlet]="defaultPendingComponent" />
-              }
-            } @else {
-              <route-match [matchId]="childMatchId" />
+        @if (childMatchId === rootRouteId) {
+          @if (matchLoadResource.isLoading()) {
+            @if (defaultPendingComponent) {
+              <ng-container [ngComponentOutlet]="defaultPendingComponent" />
             }
           } @else {
             <route-match [matchId]="childMatchId" />
           }
-        </ng-template>
+        } @else {
+          <route-match [matchId]="childMatchId" />
+        }
       }
     }
   `,
