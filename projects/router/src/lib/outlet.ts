@@ -133,8 +133,18 @@ export class RouteMatch {
 
   private matchState = routerState({
     select: (s) => {
-      const matchIndex = s.matches.findIndex((d) => d.id === this.matchId());
-      const match = s.matches[matchIndex]!;
+      let matchIndex = s.matches.findIndex((d) => d.id === this.matchId());
+      let match = s.matches[matchIndex]!;
+
+      if (!match) {
+        matchIndex = (s.pendingMatches || []).findIndex(
+          (d) => d.id === this.matchId()
+        );
+        match = s.pendingMatches?.[matchIndex]!;
+      }
+
+      invariant(match, `Could not find match for matchId "${this.matchId()}"`);
+
       const routeId = match.routeId as string;
 
       return {
