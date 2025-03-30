@@ -27,7 +27,6 @@ import invariant from 'tiny-invariant';
 import warning from 'tiny-warning';
 import { DefaultError } from './default-error';
 import { DefaultNotFound } from './default-not-found';
-import { Key } from './key';
 import { ERROR_COMPONENT_CONTEXT, NOT_FOUND_COMPONENT_CONTEXT } from './route';
 import { injectRouter } from './router';
 import { routerState } from './router-state';
@@ -370,11 +369,11 @@ export class RouteMatch {
           <route-match [matchId]="childMatchId" />
         }
       } @else {
-        <route-match *key="childMatchId" [matchId]="childMatchId" />
+        <route-match [matchId]="childMatchId" />
       }
     }
   `,
-  imports: [NgComponentOutlet, RouteMatch, Key],
+  imports: [NgComponentOutlet, RouteMatch],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class Outlet {
@@ -397,6 +396,9 @@ export class Outlet {
 
   private parentGlobalNotFound = routerState({
     select: (s) => {
+      // this means the cmp is unmounted but the match is still in place
+      if (!this.closestMatch['cmp']) return false;
+
       const matches = s.matches;
       const parentMatch = matches.find(
         (d) => d.id === this.closestMatch.matchId()
