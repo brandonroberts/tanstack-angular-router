@@ -13,6 +13,7 @@ import {
   input,
   resource,
   Type,
+  untracked,
   ViewContainerRef,
 } from '@angular/core';
 import {
@@ -396,18 +397,19 @@ export class Outlet {
 
   private parentGlobalNotFound = routerState({
     select: (s) => {
-      // this means the cmp is unmounted but the match is still in place
-      if (!this.closestMatch['cmp']) return false;
-
+      const closestMatchId = untracked(this.closestMatch.matchId);
       const matches = s.matches;
-      const parentMatch = matches.find(
-        (d) => d.id === this.closestMatch.matchId()
-      );
+      const parentMatch = matches.find((d) => d.id === closestMatchId);
 
-      invariant(
-        parentMatch,
-        `Could not find parent match for matchId "${this.closestMatch.matchId()}"`
-      );
+      if (!parentMatch) {
+        if (this.closestMatch['cmp']) {
+          warning(
+            false,
+            `Could not find parent match for matchId "${closestMatchId}". Please file an issue!`
+          );
+        }
+        return false;
+      }
 
       return parentMatch.globalNotFound;
     },
