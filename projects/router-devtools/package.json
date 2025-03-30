@@ -1,0 +1,15 @@
+{
+  "name": "tanstack-angular-router-devtools-experimental",
+  "version": "0.0.40",
+  "dependencies": {
+    "@tanstack/router-devtools-core": "^1.114.29",
+    "solid-js": "^1.9.5",
+    "tslib": "^2.3.0"
+  },
+  "peerDependencies": {
+    "@angular/core": "^19.0.0",
+    "@angular/router": "^19.0.0",
+    "tanstack-angular-router-experimental": "^0.0.39"
+  },
+  "sideEffects": false
+}

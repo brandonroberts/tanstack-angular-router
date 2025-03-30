@@ -118,6 +118,29 @@
         }
       }
     },
+    "router-devtools": {
+      "projectType": "library",
+      "root": "projects/router-devtools",
+      "sourceRoot": "projects/router-devtools/src",
+      "prefix": "lib",
+      "architect": {
+        "build": {
+          "builder": "@angular-devkit/build-angular:ng-packagr",
+          "options": {
+            "project": "projects/router-devtools/ng-package.json"
+          },
+          "configurations": {
+            "production": {
+              "tsConfig": "projects/router-devtools/tsconfig.lib.prod.json"
+            },
+            "development": {
+              "tsConfig": "projects/router-devtools/tsconfig.lib.json"
+            }
+          },
+          "defaultConfiguration": "production"
+        }
+      }
+    },
     "file-routing": {
       "projectType": "application",
       "schematics": {},

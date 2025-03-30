@@ -1,16 +1,11 @@
 {
   "$schema": "../../node_modules/ng-packagr/ng-package.schema.json",
-  "dest": "../../dist/router",
+  "dest": "../../dist/router-devtools",
   "lib": {
     "entryFile": "src/public-api.ts"
   },
   "allowedNonPeerDependencies": [
-    "@tanstack/angular-store",
-    "@tanstack/history",
-    "@tanstack/router-core",
     "@tanstack/router-devtools-core",
-    "solid-js",
-    "tiny-invariant",
-    "tiny-warning"
+    "solid-js"
   ]
 }
