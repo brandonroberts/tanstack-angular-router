@@ -5,6 +5,7 @@ import {
   InjectionToken,
   Injector,
   Provider,
+  Signal,
 } from '@angular/core';
 import { injectStore } from '@tanstack/angular-store';
 import { type HistoryLocation, type RouterHistory } from '@tanstack/history';
@@ -14,6 +15,7 @@ import {
   CreateRouterFn,
   RouterConstructorOptions,
   RouterCore,
+  RouterState,
   type TrailingSlashOption,
 } from '@tanstack/router-core';
 import { type RouteComponent } from './route';
@@ -69,9 +71,28 @@ declare module '@tanstack/router-core' {
 }
 
 export const ROUTER = new InjectionToken<NgRouter<AnyRoute>>('ROUTER');
+export const ROUTER_STATE = new InjectionToken<Signal<RouterState<AnyRoute>>>(
+  'ROUTER_STATE'
+);
 
 export function injectRouter() {
   return inject(ROUTER);
+}
+
+export function injectRouterState() {
+  return inject(ROUTER_STATE);
+}
+
+export function provideRouter(router: NgRouter<AnyRoute>) {
+  return [
+    { provide: ROUTER, useValue: router },
+    {
+      provide: ROUTER_STATE,
+      useFactory: () => {
+        return injectStore(router.__store, (state) => state);
+      },
+    },
+  ];
 }
 
 export const createRouter: CreateRouterFn = (options) => {
@@ -93,8 +114,6 @@ export class NgRouter<
 > {
   private injectors = new Map<string, Injector>();
   private envInjectors = new Map<string, EnvironmentInjector>();
-
-  readonly routerState = injectStore(this.__store, (state) => state);
 
   constructor(
     options: RouterConstructorOptions<

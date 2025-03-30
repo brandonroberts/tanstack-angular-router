@@ -12,7 +12,7 @@ import {
   shallow,
   type AnyRouter,
 } from '@tanstack/router-core';
-import { injectRouter } from './router';
+import { injectRouterState } from './router';
 
 export type RouterStateOptions<TRouter extends AnyRouter, TSelected> = {
   select?: (state: RouterState<TRouter['routeTree']>) => TSelected;
@@ -35,11 +35,11 @@ export function routerState<
   }
 
   return runInInjectionContext(injector, () => {
-    const router = injectRouter();
+    const rootRouterState = injectRouterState();
     return computed(
       () => {
-        if (select) return select(router.routerState());
-        return router.routerState();
+        if (select) return select(rootRouterState());
+        return rootRouterState();
       },
       { equal: shallow }
     ) as Signal<RouterStateResult<TRouter, TSelected>>;
