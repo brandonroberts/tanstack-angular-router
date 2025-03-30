@@ -83,7 +83,7 @@ export function injectRouterState() {
   return inject(ROUTER_STATE);
 }
 
-export function provideRouter(router: NgRouter<AnyRoute>) {
+export function provideRouter(router: ReturnType<CreateRouterFn>) {
   return [
     { provide: ROUTER, useValue: router },
     {

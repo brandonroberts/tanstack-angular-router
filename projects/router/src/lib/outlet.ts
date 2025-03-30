@@ -285,10 +285,10 @@ export class RouteMatch {
     return { component: errorComponent, injector };
   });
 
-  constructor() {
-    let cmp: Type<any> | undefined = undefined;
-    let cmpRef: ComponentRef<any> | undefined = undefined;
+  private cmpRef?: ComponentRef<any>;
+  private cmp?: Type<any>;
 
+  constructor() {
     effect(() => {
       const routeId = this.routeId();
       invariant(
@@ -320,10 +320,10 @@ export class RouteMatch {
 
         const currentCmp = matchRoute.options.component?.() || Outlet;
 
-        if (cmp === currentCmp) {
-          cmpRef?.changeDetectorRef.markForCheck();
+        if (this.cmp === currentCmp) {
+          this.cmpRef?.changeDetectorRef.markForCheck();
         } else {
-          cmpRef?.destroy();
+          this.cleanUpCmpRef();
 
           const injector = this.router.getRouteInjector(
             matchRoute.id,
@@ -335,26 +335,28 @@ export class RouteMatch {
             matchRoute.options.providers || [],
             this.router
           );
-          cmp = currentCmp;
-          cmpRef = this.vcr.createComponent(currentCmp, {
+          this.cmp = currentCmp;
+          this.cmpRef = this.vcr.createComponent(currentCmp, {
             injector,
             environmentInjector,
           });
-          cmpRef.changeDetectorRef.markForCheck();
+          this.cmpRef.changeDetectorRef.markForCheck();
         }
       } else {
-        cmpRef?.destroy();
-        cmpRef = undefined;
-        cmp = undefined;
+        this.cleanUpCmpRef();
       }
     });
 
     inject(DestroyRef).onDestroy(() => {
       this.vcr.clear();
-      cmpRef?.destroy();
-      cmpRef = undefined;
-      cmp = undefined;
+      this.cleanUpCmpRef();
     });
+  }
+
+  private cleanUpCmpRef() {
+    this.cmpRef?.destroy();
+    this.cmpRef = undefined;
+    this.cmp = undefined;
   }
 }
 
