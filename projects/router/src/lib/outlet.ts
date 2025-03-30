@@ -27,6 +27,7 @@ import invariant from 'tiny-invariant';
 import warning from 'tiny-warning';
 import { DefaultError } from './default-error';
 import { DefaultNotFound } from './default-not-found';
+import { Key } from './key';
 import { ERROR_COMPONENT_CONTEXT, NOT_FOUND_COMPONENT_CONTEXT } from './route';
 import { injectRouter } from './router';
 import { routerState } from './router-state';
@@ -347,21 +348,23 @@ export class RouteMatch {
       />
     } @else {
       @if (childMatchId(); as childMatchId) {
-        @if (childMatchId === rootRouteId) {
-          @if (matchLoadResource.isLoading()) {
-            @if (defaultPendingComponent) {
-              <ng-container [ngComponentOutlet]="defaultPendingComponent" />
+        <ng-template [key]="childMatchId">
+          @if (childMatchId === rootRouteId) {
+            @if (matchLoadResource.isLoading()) {
+              @if (defaultPendingComponent) {
+                <ng-container [ngComponentOutlet]="defaultPendingComponent" />
+              }
+            } @else {
+              <route-match [matchId]="childMatchId" />
             }
           } @else {
             <route-match [matchId]="childMatchId" />
           }
-        } @else {
-          <route-match [matchId]="childMatchId" />
-        }
+        </ng-template>
       }
     }
   `,
-  imports: [NgComponentOutlet, RouteMatch],
+  imports: [NgComponentOutlet, RouteMatch, Key],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class Outlet {
