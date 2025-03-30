@@ -372,7 +372,7 @@ export class Outlet {
 
   protected notFoundComponentData = computed(() => {
     const parentGlobalNotFound = this.parentGlobalNotFound();
-    if (parentGlobalNotFound) return null;
+    if (!parentGlobalNotFound) return null;
 
     const route = this.route();
     let notFoundCmp: Type<any> | undefined = undefined;
