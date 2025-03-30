@@ -326,4 +326,5 @@ export type {
   ValidateUseSearchResult,
 } from '@tanstack/router-core';
 
+export * from './router-devtools';
 export * from './transitioner';
