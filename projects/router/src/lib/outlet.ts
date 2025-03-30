@@ -267,7 +267,7 @@ export class RouteMatch {
     let cmp: Type<any> | undefined = undefined;
     let cmpRef: ComponentRef<any> | undefined = undefined;
 
-    effect((onCleanup) => {
+    effect(() => {
       const routeId = this.routeId();
       invariant(
         routeId,
@@ -296,6 +296,8 @@ export class RouteMatch {
         if (cmp === currentCmp) {
           cmpRef?.changeDetectorRef.markForCheck();
         } else {
+          cmpRef?.destroy();
+
           const injector = this.router.getRouteInjector(
             this.matchRoute().id,
             this.injector
