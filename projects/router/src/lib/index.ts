@@ -272,7 +272,15 @@ export {
 
 export type { AnyRootRoute, RouteComponent } from './route';
 
-export { NgRouter, ROUTER, createRouter, injectRouter } from './router';
+export {
+  NgRouter,
+  ROUTER,
+  ROUTER_STATE,
+  createRouter,
+  injectRouter,
+  injectRouterState,
+  provideRouter,
+} from './router';
 export * from './router-root';
 
 export {
