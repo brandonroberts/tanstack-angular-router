@@ -2,6 +2,7 @@ import { NgComponentOutlet } from '@angular/common';
 import {
   ChangeDetectionStrategy,
   Component,
+  ComponentRef,
   computed,
   DestroyRef,
   Directive,
@@ -142,8 +143,10 @@ export class RouteMatch {
       };
     },
   });
+
+  private matchRouteId = computed(() => this.matchState().routeId);
   private matchRoute = computed(
-    () => this.router.routesById[this.matchState().routeId]!
+    () => this.router.routesById[this.matchRouteId()]!
   );
   protected match = computed(() => this.matchState().match, {
     equal: (a, b) => a.id === b.id && a.status === b.status,
@@ -261,6 +264,9 @@ export class RouteMatch {
   });
 
   constructor() {
+    let cmp: Type<any> | undefined = undefined;
+    let cmpRef: ComponentRef<any> | undefined = undefined;
+
     effect((onCleanup) => {
       const routeId = this.routeId();
       invariant(
@@ -285,28 +291,35 @@ export class RouteMatch {
          * ngComponentOutlet does not support EnvironmentInjector yet
          */
 
-        const cmp = this.matchRoute().options.component?.() || Outlet;
-        const injector = this.router.getRouteInjector(
-          this.matchRoute().id,
-          this.injector
-        );
-        const environmentInjector = this.router.getRouteEnvInjector(
-          this.matchRoute().id,
-          this.environmentInjector,
-          this.matchRoute().options.providers || [],
-          this.router
-        );
-        const ref = this.vcr.createComponent(cmp, {
-          injector,
-          environmentInjector,
-        });
-        ref.changeDetectorRef.markForCheck();
-        onCleanup(() => ref.destroy());
+        const currentCmp = this.matchRoute().options.component?.() || Outlet;
+
+        if (cmp === currentCmp) {
+          cmpRef?.changeDetectorRef.markForCheck();
+        } else {
+          const injector = this.router.getRouteInjector(
+            this.matchRoute().id,
+            this.injector
+          );
+          const environmentInjector = this.router.getRouteEnvInjector(
+            this.matchRoute().id,
+            this.environmentInjector,
+            this.matchRoute().options.providers || [],
+            this.router
+          );
+          cmpRef = this.vcr.createComponent(currentCmp, {
+            injector,
+            environmentInjector,
+          });
+          cmpRef.changeDetectorRef.markForCheck();
+        }
       }
     });
 
     inject(DestroyRef).onDestroy(() => {
       this.vcr.clear();
+      cmpRef?.destroy();
+      cmpRef = undefined;
+      cmp = undefined;
     });
   }
 }
