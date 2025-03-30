@@ -65,38 +65,40 @@ export class OnRendered {
   template: `
     @let match = this.match();
 
-    @switch (match.status) {
-      @case ('notFound') {
-        @if (notFoundMatch(); as notFoundMatch) {
-          <ng-container
-            [ngComponentOutlet]="notFoundMatch.component"
-            [ngComponentOutletInjector]="notFoundMatch.injector"
-          />
-        }
-      }
-
-      <!-- TODO: clean this up once Angular supports multiple cases -->
-      @case ('redirected') {
-        @if (matchLoadResource.isLoading()) {
-          @if (pendingMatch(); as pendingMatch) {
-            <ng-container [ngComponentOutlet]="pendingMatch.component" />
+    @if (match) {
+      @switch (match.status) {
+        @case ('notFound') {
+          @if (notFoundMatch(); as notFoundMatch) {
+            <ng-container
+              [ngComponentOutlet]="notFoundMatch.component"
+              [ngComponentOutletInjector]="notFoundMatch.injector"
+            />
           }
         }
-      }
-      @case ('pending') {
-        @if (matchLoadResource.isLoading()) {
-          @if (pendingMatch(); as pendingMatch) {
-            <ng-container [ngComponentOutlet]="pendingMatch.component" />
+
+        <!-- TODO: clean this up once Angular supports multiple cases -->
+        @case ('redirected') {
+          @if (matchLoadResource.isLoading()) {
+            @if (pendingMatch(); as pendingMatch) {
+              <ng-container [ngComponentOutlet]="pendingMatch.component" />
+            }
           }
         }
-      }
+        @case ('pending') {
+          @if (matchLoadResource.isLoading()) {
+            @if (pendingMatch(); as pendingMatch) {
+              <ng-container [ngComponentOutlet]="pendingMatch.component" />
+            }
+          }
+        }
 
-      @case ('error') {
-        @if (errorMatch(); as errorMatch) {
-          <ng-container
-            [ngComponentOutlet]="errorMatch.component"
-            [ngComponentOutletInjector]="errorMatch.injector"
-          />
+        @case ('error') {
+          @if (errorMatch(); as errorMatch) {
+            <ng-container
+              [ngComponentOutlet]="errorMatch.component"
+              [ngComponentOutletInjector]="errorMatch.injector"
+            />
+          }
         }
       }
     }
@@ -134,18 +136,10 @@ export class RouteMatch {
 
   private matchState = routerState({
     select: (s) => {
-      let matchIndex = s.matches.findIndex((d) => d.id === this.matchId());
-      let match = s.matches[matchIndex]!;
+      const matchIndex = s.matches.findIndex((d) => d.id === this.matchId());
+      const match = s.matches[matchIndex]!;
 
-      if (!match) {
-        matchIndex = (s.pendingMatches || []).findIndex(
-          (d) => d.id === this.matchId()
-        );
-        match = s.pendingMatches?.[matchIndex]!;
-      }
-
-      invariant(match, `Could not find match for matchId "${this.matchId()}"`);
-
+      if (!match) return null;
       const routeId = match.routeId as string;
 
       return {
@@ -155,22 +149,35 @@ export class RouteMatch {
     },
   });
 
-  private matchRouteId = computed(() => this.matchState().routeId);
-  private matchRoute = computed(
-    () => this.router.routesById[this.matchRouteId()]!
-  );
-  protected match = computed(() => this.matchState().match, {
-    equal: (a, b) => a.id === b.id && a.status === b.status,
+  private matchRouteId = computed(() => {
+    const matchState = this.matchState();
+    if (!matchState) return null;
+    return matchState.routeId;
   });
+  private matchRoute = computed(() => {
+    const matchRouteId = this.matchRouteId();
+    if (!matchRouteId) return null;
+    return this.router.routesById[matchRouteId]!;
+  });
+  protected match = computed(
+    () => {
+      const matchState = this.matchState();
+      if (!matchState) return null;
+      return matchState.match;
+    },
+    { equal: (a, b) => !!a && !!b && a.id === b.id && a.status === b.status }
+  );
   protected matchLoadResource = resource({
     request: this.match,
     loader: ({ request }) => {
+      if (!request) return Promise.resolve();
+
       const loadPromise = this.router.getMatch(request.id)?.loadPromise;
       if (!loadPromise) return Promise.resolve();
 
       if (request.status === 'pending') {
         const pendingMinMs =
-          this.matchRoute().options.pendingMinMs ??
+          this.matchRoute()?.options.pendingMinMs ??
           this.router.options.defaultPendingMinMs;
 
         let minPendingPromise = this.router.getMatch(
@@ -208,7 +215,7 @@ export class RouteMatch {
 
   protected pendingMatch = computed(() => {
     const match = this.match();
-    if (match.status !== 'pending' && match.status !== 'redirected')
+    if (!match || (match.status !== 'pending' && match.status !== 'redirected'))
       return null;
 
     const pendingComponent = this.pendingComponent()?.();
@@ -219,7 +226,7 @@ export class RouteMatch {
 
   protected notFoundMatch = computed(() => {
     const match = this.match();
-    if (match.status !== 'notFound') return null;
+    if (!match || match.status !== 'notFound') return null;
     invariant(isNotFound(match.error), 'Expected a notFound error');
 
     const route = this.route();
@@ -253,10 +260,14 @@ export class RouteMatch {
 
   protected errorMatch = computed(() => {
     const match = this.match();
-    if (match.status !== 'error') return null;
+    if (!match || match.status !== 'error') return null;
+
+    const matchRoute = this.matchRoute();
+    if (!matchRoute) return null;
+
     const errorComponent = this.errorComponent()?.() || DefaultError;
     const injector = this.router.getRouteInjector(
-      this.matchRoute().id + '-error',
+      matchRoute.id + '-error',
       this.injector,
       [
         {
@@ -286,6 +297,8 @@ export class RouteMatch {
       );
 
       const match = this.match();
+      if (!match) return;
+
       if (match.status === 'error') {
         this.onCatch()?.(match.error as Error);
         return;
@@ -302,7 +315,10 @@ export class RouteMatch {
          * ngComponentOutlet does not support EnvironmentInjector yet
          */
 
-        const currentCmp = this.matchRoute().options.component?.() || Outlet;
+        const matchRoute = this.matchRoute();
+        if (!matchRoute) return;
+
+        const currentCmp = matchRoute.options.component?.() || Outlet;
 
         if (cmp === currentCmp) {
           cmpRef?.changeDetectorRef.markForCheck();
@@ -310,13 +326,13 @@ export class RouteMatch {
           cmpRef?.destroy();
 
           const injector = this.router.getRouteInjector(
-            this.matchRoute().id,
+            matchRoute.id,
             this.injector
           );
           const environmentInjector = this.router.getRouteEnvInjector(
-            this.matchRoute().id,
+            matchRoute.id,
             this.environmentInjector,
-            this.matchRoute().options.providers || [],
+            matchRoute.options.providers || [],
             this.router
           );
           cmp = currentCmp;
