@@ -30,11 +30,11 @@ import { routerState } from './router-state';
   selector: 'a[link]',
   exportAs: 'link',
   host: {
-    '(click)': 'type() === "internal" && handleClick($event)',
-    '(focus)': 'type() === "internal" && handleFocus()',
-    '(touchstart)': 'type() === "internal" && handleClick($event)',
-    '(mouseenter)': 'type() === "internal" && handleMouseEnter($event)',
-    '(mouseleave)': 'type() === "internal" && handleMouseLeave()',
+    '(click)': 'handleClick($event)',
+    '(focus)': 'handleFocus()',
+    '(touchstart)': 'handleClick($event)',
+    '(mouseenter)': 'handleMouseEnter($event)',
+    '(mouseleave)': 'handleMouseLeave()',
     '[class]': '[isActive() ? activeClass() : ""]',
     '[attr.data-active]': 'isActive()',
     '[attr.data-type]': 'type()',
@@ -238,6 +238,8 @@ export class Link {
   }
 
   protected handleClick(event: MouseEvent) {
+    if (this.type() === 'external') return;
+
     const [disabled, target] = [
       this.disabled(),
       this.hostElement.nativeElement.target,
@@ -260,7 +262,7 @@ export class Link {
   }
 
   protected handleFocus() {
-    if (this.disabled()) return;
+    if (this.disabled() || this.type() === 'external') return;
     if (this.preload()) {
       this.doPreload();
     }
@@ -268,7 +270,13 @@ export class Link {
 
   private preloadTimeout: ReturnType<typeof setTimeout> | null = null;
   protected handleMouseEnter(event: MouseEvent) {
-    if (this.disabled() || !this.preload() || this.isActive()) return;
+    if (
+      this.disabled() ||
+      !this.preload() ||
+      this.isActive() ||
+      this.type() === 'external'
+    )
+      return;
 
     this.preloadTimeout = setTimeout(() => {
       this.preloadTimeout = null;
@@ -277,7 +285,7 @@ export class Link {
   }
 
   protected handleMouseLeave() {
-    if (this.disabled()) return;
+    if (this.disabled() || this.type() === 'external') return;
     if (this.preloadTimeout) {
       clearTimeout(this.preloadTimeout);
       this.preloadTimeout = null;
