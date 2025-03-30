@@ -342,6 +342,10 @@ export class RouteMatch {
           });
           cmpRef.changeDetectorRef.markForCheck();
         }
+      } else {
+        cmpRef?.destroy();
+        cmpRef = undefined;
+        cmp = undefined;
       }
     });
 

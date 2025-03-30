@@ -6,6 +6,7 @@ import {
   Injector,
   Provider,
 } from '@angular/core';
+import { injectStore } from '@tanstack/angular-store';
 import { type HistoryLocation, type RouterHistory } from '@tanstack/history';
 import {
   type AnyRoute,
@@ -92,6 +93,8 @@ export class NgRouter<
 > {
   private injectors = new Map<string, Injector>();
   private envInjectors = new Map<string, EnvironmentInjector>();
+
+  readonly routerState = injectStore(this.__store, (state) => state);
 
   constructor(
     options: RouterConstructorOptions<

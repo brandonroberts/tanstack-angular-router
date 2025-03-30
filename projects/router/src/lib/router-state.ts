@@ -1,14 +1,15 @@
 import {
   assertInInjectionContext,
+  computed,
   inject,
   Injector,
   runInInjectionContext,
   Signal,
 } from '@angular/core';
-import { injectStore } from '@tanstack/angular-store';
 import {
   RegisteredRouter,
   RouterState,
+  shallow,
   type AnyRouter,
 } from '@tanstack/router-core';
 import { injectRouter } from './router';
@@ -35,9 +36,12 @@ export function routerState<
 
   return runInInjectionContext(injector, () => {
     const router = injectRouter();
-    return injectStore(router.__store, (state) => {
-      if (select) return select(state);
-      return state;
-    }) as Signal<RouterStateResult<TRouter, TSelected>>;
+    return computed(
+      () => {
+        if (select) return select(router.routerState());
+        return router.routerState();
+      },
+      { equal: shallow }
+    ) as Signal<RouterStateResult<TRouter, TSelected>>;
   });
 }
