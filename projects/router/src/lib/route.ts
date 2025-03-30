@@ -1,161 +1,108 @@
 import {
-  assertInInjectionContext,
-  computed,
-  inject,
-  Injector,
+  InjectionToken,
+  Provider,
   runInInjectionContext,
-  Signal,
+  type Type,
 } from '@angular/core';
 import {
   AnyContext,
   AnyRoute,
-  AnyRouter,
   BaseRootRoute,
   BaseRoute,
   BaseRouteApi,
-  ConstrainLiteral,
-  LazyRouteOptions,
-  RegisteredRouter,
   ResolveFullPath,
   ResolveId,
   ResolveParams,
-  ResolveUseLoaderData,
-  ResolveUseParams,
-  ResolveUseSearch,
-  rootRouteId,
   RootRouteId,
   RootRouteOptions,
-  RouteById,
   RouteConstraints,
-  RouteIds,
   RouteOptions,
+  type AnyRouter,
+  type ConstrainLiteral,
+  type ErrorComponentProps,
+  type NotFoundRouteProps,
+  type RegisteredRouter,
+  type RouteIds,
 } from '@tanstack/router-core';
-import { injectRouteContext, injectRouter, RouterContext } from './router';
+import { loaderData, LoaderDataRoute } from './loader-data';
+import { loaderDeps, LoaderDepsRoute } from './loader-deps';
+import { match, MatchRoute } from './match';
+import { params, ParamsRoute } from './params';
+import { routeContext, RouteContextRoute } from './route-context';
+import { search, SearchRoute } from './search';
 
-export type RouteLoaderData<out TId> = <
-  TRouter extends AnyRouter = RegisteredRouter,
->(opts?: {
-  injector?: Injector;
-}) => Signal<ResolveUseLoaderData<TRouter, TId, false>>;
-export type RouteRouteParams<out TId> = <
-  TRouter extends AnyRouter = RegisteredRouter,
->(opts?: {
-  injector?: Injector;
-}) => Signal<ResolveUseParams<TRouter, TId, false>>;
-export type RouteRouteSearch<out TId> = <
-  TRouter extends AnyRouter = RegisteredRouter,
->(opts?: {
-  injector?: Injector;
-}) => Signal<ResolveUseSearch<TRouter, TId, false>>;
-
-function loaderData({
-  id,
-  injector,
-}: { id?: string; injector?: Injector } = {}) {
-  !injector && assertInInjectionContext(loaderData);
-
-  if (!injector) {
-    injector = inject(Injector);
+declare module '@tanstack/router-core' {
+  export interface UpdatableRouteOptionsExtensions {
+    component?: () => RouteComponent;
+    errorComponent?: false | null | (() => RouteComponent);
+    notFoundComponent?: () => RouteComponent;
+    pendingComponent?: () => RouteComponent;
+    providers?: Provider[];
   }
 
-  return runInInjectionContext(injector, () => {
-    const router = injectRouter();
-    const routeId = id ?? injectRouteContext()?.id;
-
-    if (!routeId) {
-      throw new Error('routeId is required');
-    }
-
-    return computed(() => {
-      const route = router.matches().find((match) => match.routeId === routeId);
-      return (route && route.loaderData) || undefined;
-    });
-  });
-}
-
-function routeSearch({
-  id,
-  injector,
-}: { id?: string; injector?: Injector } = {}) {
-  !injector && assertInInjectionContext(routeSearch);
-
-  if (!injector) {
-    injector = inject(Injector);
+  export interface RouteExtensions<
+    TId extends string,
+    TFullPath extends string,
+  > {
+    match: MatchRoute<TId>;
+    routeContext: RouteContextRoute<TId>;
+    search: SearchRoute<TId>;
+    params: ParamsRoute<TId>;
+    loaderDeps: LoaderDepsRoute<TId>;
+    loaderData: LoaderDataRoute<TId>;
   }
-
-  return runInInjectionContext(injector, () => {
-    const router = injectRouter();
-    const routeId = id ?? injectRouteContext()?.id;
-
-    if (!routeId) {
-      throw new Error('routeId is required');
-    }
-
-    return computed(() => {
-      const route = router.matches().find((match) => match.routeId === routeId);
-      return (route && route.search) || ({} as Record<string, unknown>);
-    });
-  });
 }
 
-function routeParams({
-  id,
-  injector,
-}: { id?: string; injector?: Injector } = {}) {
-  !injector && assertInInjectionContext(routeParams);
+export const ERROR_COMPONENT_CONTEXT = new InjectionToken<ErrorComponentProps>(
+  'ERROR_COMPONENT_CONTEXT'
+);
+export const NOT_FOUND_COMPONENT_CONTEXT =
+  new InjectionToken<NotFoundRouteProps>('NOT_FOUND_COMPONENT_CONTEXT');
 
-  if (!injector) {
-    injector = inject(Injector);
-  }
-
-  return runInInjectionContext(injector, () => {
-    const router = injectRouter();
-    const routeId = id ?? injectRouteContext()?.id;
-
-    if (!routeId) {
-      throw new Error('routeId is required');
-    }
-
-    return computed(() => {
-      const route = router.matches().find((match) => match.routeId === routeId);
-      return (route && route.params) || {};
-    });
-  });
-}
+export type RouteComponent<TComponent extends object = object> =
+  Type<TComponent>;
 
 export function routeApi<
   const TId,
   TRouter extends AnyRouter = RegisteredRouter,
->({
-  id,
-  injector,
-}: {
-  id: ConstrainLiteral<TId, RouteIds<TRouter['routeTree']>>;
-  injector?: Injector;
-}): BaseRouteApi<TId, TRouter> & {
-  loaderData: () => Signal<ResolveUseLoaderData<TRouter, TId, false>>;
-  routeParams: () => Signal<ResolveUseParams<TRouter, TId, false>>;
-  routeSearch: () => Signal<ResolveUseSearch<TRouter, TId, false>>;
-} {
-  !injector && assertInInjectionContext(routeApi);
+>(id: ConstrainLiteral<TId, RouteIds<TRouter['routeTree']>>) {
+  return new RouteApi<TId, TRouter>({ id });
+}
 
-  if (!injector) {
-    injector = inject(Injector);
+export class RouteApi<
+  TId,
+  TRouter extends AnyRouter = RegisteredRouter,
+> extends BaseRouteApi<TId, TRouter> {
+  /**
+   * @deprecated Use the `getRouteApi` function instead.
+   */
+  constructor({ id }: { id: TId }) {
+    super({ id });
   }
 
-  const _loaderData = loaderData.bind(null, { id, injector });
-  const _routeParams = routeParams.bind(null, { id, injector });
-  const _routeSearch = routeSearch.bind(null, { id, injector });
+  match: MatchRoute<TId> = (opts) => {
+    return match({ ...opts, from: this.id } as any) as any;
+  };
 
-  return runInInjectionContext(injector, () => {
-    const routeApi = new BaseRouteApi<TId, TRouter>({ id });
+  routeContext: RouteContextRoute<TId> = (opts) => {
+    return routeContext({ ...opts, from: this.id } as any);
+  };
 
-    return Object.assign(routeApi, {
-      loaderData: _loaderData,
-      routeParams: _routeParams,
-      routeSearch: _routeSearch,
-    });
-  });
+  search: SearchRoute<TId> = (opts) => {
+    return search({ ...opts, from: this.id } as any) as any;
+  };
+
+  params: ParamsRoute<TId> = (opts) => {
+    return params({ ...opts, from: this.id } as any) as any;
+  };
+
+  loaderDeps: LoaderDepsRoute<TId> = (opts) => {
+    return loaderData({ ...opts, from: this.id, strict: false } as any);
+  };
+
+  loaderData: LoaderDataRoute<TId> = (opts) => {
+    return loaderDeps({ ...opts, from: this.id, strict: false } as any);
+  };
 }
 
 export class Route<
@@ -196,6 +143,9 @@ export class Route<
   TChildren,
   TFileRouteTypes
 > {
+  /**
+   * @deprecated Use the `createRoute` function instead.
+   */
   constructor(
     options?: RouteOptions<
       TParentRoute,
@@ -215,32 +165,33 @@ export class Route<
     super(options);
   }
 
-  loaderData<
-    TRouter extends AnyRouter = RegisteredRouter,
-    const TFrom extends string | undefined = undefined,
-  >({ injector }: { injector?: Injector } = {}): Signal<
-    ResolveUseLoaderData<TRouter, TFrom, false>
-  > {
-    return loaderData({ id: this.id, injector });
-  }
+  match: MatchRoute<TId> = (opts) => {
+    return match({ ...opts, from: this.id } as any) as any;
+  };
 
-  routeParams<
-    TRouter extends AnyRouter = RegisteredRouter,
-    const TFrom extends string | undefined = undefined,
-  >({ injector }: { injector?: Injector } = {}): Signal<
-    ResolveUseParams<TRouter, TFrom, false>
-  > {
-    return routeParams({ id: this.id, injector });
-  }
+  routeContext: RouteContextRoute<TId> = (opts?) => {
+    return match({
+      ...opts,
+      from: this.id,
+      select: (d) => (opts?.select ? opts.select(d.context) : d.context),
+    }) as any;
+  };
 
-  routeSearch<
-    TRouter extends AnyRouter = RegisteredRouter,
-    const TFrom extends string | undefined = undefined,
-  >({ injector }: { injector?: Injector } = {}): Signal<
-    ResolveUseSearch<TRouter, TFrom, false>
-  > {
-    return routeSearch({ id: this.id, injector });
-  }
+  search: SearchRoute<TId> = (opts) => {
+    return search({ ...opts, from: this.id } as any) as any;
+  };
+
+  params: ParamsRoute<TId> = (opts) => {
+    return params({ ...opts, from: this.id } as any) as any;
+  };
+
+  loaderDeps: LoaderDepsRoute<TId> = (opts) => {
+    return loaderDeps({ ...opts, from: this.id } as any);
+  };
+
+  loaderData: LoaderDataRoute<TId> = (opts) => {
+    return loaderData({ ...opts, from: this.id } as any);
+  };
 }
 
 export function createRoute<
@@ -262,7 +213,6 @@ export function createRoute<
   TBeforeLoadFn = AnyContext,
   TLoaderDeps extends Record<string, any> = {},
   TLoaderFn = undefined,
-  TRouterContext extends Record<string, any> = AnyContext,
   TChildren = unknown,
 >(
   options: RouteOptions<
@@ -275,7 +225,7 @@ export function createRoute<
     TParams,
     TLoaderDeps,
     TLoaderFn,
-    RouterContext<TRouterContext>,
+    AnyContext,
     TRouteContextFn,
     TBeforeLoadFn
   >
@@ -287,12 +237,13 @@ export function createRoute<
   TId,
   TSearchValidator,
   TParams,
-  RouterContext<TRouterContext>,
+  AnyContext,
   TRouteContextFn,
   TBeforeLoadFn,
   TLoaderDeps,
   TLoaderFn,
-  TChildren
+  TChildren,
+  unknown
 > {
   if (options.loader) {
     options.loader = runFnInInjectionContext(options.loader);
@@ -314,58 +265,49 @@ export function createRoute<
     TId,
     TSearchValidator,
     TParams,
-    RouterContext<TRouterContext>,
+    AnyContext,
     TRouteContextFn,
     TBeforeLoadFn,
     TLoaderDeps,
     TLoaderFn,
-    TChildren
+    TChildren,
+    unknown
   >(options);
 }
 
-export class LazyRoute<TRoute extends AnyRoute> {
-  constructor(
-    public readonly options: LazyRouteOptions & { id: TRoute['id'] }
-  ) {}
+export type AnyRootRoute = RootRoute<any, any, any, any, any, any, any, any>;
 
-  loaderData<TRouter extends AnyRouter = RegisteredRouter>({
-    injector,
-  }: { injector?: Injector } = {}): Signal<
-    ResolveUseLoaderData<TRouter, TRoute['id'], true>
-  > {
-    return loaderData({ id: this.options.id, injector });
-  }
-
-  routeParams<TRouter extends AnyRouter = RegisteredRouter>({
-    injector,
-  }: { injector?: Injector } = {}): Signal<
-    ResolveUseParams<TRouter, TRoute['id'], true>
-  > {
-    return routeParams({ id: this.options.id, injector });
-  }
-
-  routeSearch<TRouter extends AnyRouter = RegisteredRouter>({
-    injector,
-  }: { injector?: Injector } = {}): Signal<
-    ResolveUseSearch<TRouter, TRoute['id'], true>
-  > {
-    return routeSearch({ id: this.options.id, injector });
-  }
-}
-
-export function createLazyRoute<
-  TRouter extends AnyRouter = RegisteredRouter,
-  TId extends string = string,
-  TRoute extends AnyRoute = RouteById<TRouter['routeTree'], TId>,
->(id: ConstrainLiteral<TId, RouteIds<TRouter['routeTree']>>) {
-  return (options: LazyRouteOptions) => {
-    return new LazyRoute<TRoute>(Object.assign(options, { id }));
+export function createRootRouteWithContext<TRouterContext extends {}>() {
+  return <
+    TRouteContextFn = AnyContext,
+    TBeforeLoadFn = AnyContext,
+    TSearchValidator = undefined,
+    TLoaderDeps extends Record<string, any> = {},
+    TLoaderFn = undefined,
+  >(
+    options?: RootRouteOptions<
+      TSearchValidator,
+      TRouterContext,
+      TRouteContextFn,
+      TBeforeLoadFn,
+      TLoaderDeps,
+      TLoaderFn
+    >
+  ) => {
+    return createRootRoute<
+      TSearchValidator,
+      TRouterContext,
+      TRouteContextFn,
+      TBeforeLoadFn,
+      TLoaderDeps,
+      TLoaderFn
+    >(options as any);
   };
 }
 
-class RootRoute<
+export class RootRoute<
   in out TSearchValidator = undefined,
-  in out TRouterContext extends Record<string, any> = {},
+  in out TRouterContext = {},
   in out TRouteContextFn = AnyContext,
   in out TBeforeLoadFn = AnyContext,
   in out TLoaderDeps extends Record<string, any> = {},
@@ -382,6 +324,9 @@ class RootRoute<
   TChildren,
   TFileRouteTypes
 > {
+  /**
+   * @deprecated `RootRoute` is now an internal implementation detail. Use `createRootRoute()` instead.
+   */
   constructor(
     options?: RootRouteOptions<
       TSearchValidator,
@@ -392,41 +337,41 @@ class RootRoute<
       TLoaderFn
     >
   ) {
-    if (options?.loader) {
-      options.loader = runFnInInjectionContext(options.loader);
-    }
-
     super(options);
   }
 
-  loaderData<TRouter extends AnyRouter = RegisteredRouter>({
-    injector,
-  }: { injector?: Injector } = {}): Signal<
-    ResolveUseLoaderData<TRouter, RootRouteId, false>
-  > {
-    return loaderData({ id: rootRouteId, injector });
-  }
+  match: MatchRoute<RootRouteId> = (opts) => {
+    return match({ ...opts, from: this.id } as any) as any;
+  };
 
-  routeParams<TRouter extends AnyRouter = RegisteredRouter>({
-    injector,
-  }: { injector?: Injector } = {}): Signal<
-    ResolveUseParams<TRouter, RootRouteId, false>
-  > {
-    return routeParams({ id: rootRouteId, injector });
-  }
+  routeContext: RouteContextRoute<RootRouteId> = (opts) => {
+    return match({
+      ...opts,
+      from: this.id,
+      select: (d) => (opts?.select ? opts.select(d.context) : d.context),
+    }) as any;
+  };
 
-  routeSearch<TRouter extends AnyRouter = RegisteredRouter>({
-    injector,
-  }: { injector?: Injector } = {}): Signal<
-    ResolveUseSearch<TRouter, RootRouteId, false>
-  > {
-    return routeSearch({ id: rootRouteId, injector });
-  }
+  search: SearchRoute<RootRouteId> = (opts) => {
+    return search({ ...opts, from: this.id } as any) as any;
+  };
+
+  params: ParamsRoute<RootRouteId> = (opts) => {
+    return params({ ...opts, from: this.id } as any) as any;
+  };
+
+  loaderDeps: LoaderDepsRoute<RootRouteId> = (opts) => {
+    return loaderDeps({ ...opts, from: this.id } as any);
+  };
+
+  loaderData: LoaderDataRoute<RootRouteId> = (opts) => {
+    return loaderData({ ...opts, from: this.id } as any);
+  };
 }
 
 export function createRootRoute<
   TSearchValidator = undefined,
-  TRouterContext extends Record<string, any> = {},
+  TRouterContext = {},
   TRouteContextFn = AnyContext,
   TBeforeLoadFn = AnyContext,
   TLoaderDeps extends Record<string, any> = {},
@@ -450,18 +395,6 @@ export function createRootRoute<
   unknown,
   unknown
 > {
-  if (options?.loader) {
-    options.loader = runFnInInjectionContext(options.loader);
-  }
-
-  if (options?.shouldReload && typeof options.shouldReload === 'function') {
-    options.shouldReload = runFnInInjectionContext(options.shouldReload);
-  }
-
-  if (options?.beforeLoad) {
-    options.beforeLoad = runFnInInjectionContext(options.beforeLoad);
-  }
-
   return new RootRoute<
     TSearchValidator,
     TRouterContext,
@@ -471,8 +404,6 @@ export function createRootRoute<
     TLoaderFn
   >(options);
 }
-
-export type AnyRootRoute = RootRoute<any, any, any, any, any, any, any, any>;
 
 export class NotFoundRoute<
   TParentRoute extends AnyRootRoute,

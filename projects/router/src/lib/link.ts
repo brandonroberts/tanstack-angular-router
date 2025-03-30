@@ -22,7 +22,9 @@ import {
   RegisteredRouter,
   removeTrailingSlash,
 } from '@tanstack/router-core';
+import { matches } from './matches';
 import { injectRouter } from './router';
+import { routerState } from './router-state';
 
 @Directive({
   selector: 'a[link]',
@@ -78,16 +80,16 @@ export class Link {
   private router = injectRouter();
   hostElement = inject<ElementRef<HTMLAnchorElement>>(ElementRef);
 
-  private currentSearch = computed(() => this.router.location().search);
+  private currentSearch = routerState({ select: (s) => s.location.searchStr });
 
-  protected disabled = computed(() => this.linkOptions().disabled);
-  private to = computed(() => this.linkOptions().to);
-  private userFrom = computed(() => this.linkOptions().from);
+  protected disabled = computed(() => this.linkOptions()['disabled']);
+  private to = computed(() => this.linkOptions()['to']);
+  private userFrom = computed(() => this.linkOptions()['from']);
   private userReloadDocument = computed(
-    () => this.linkOptions().reloadDocument
+    () => this.linkOptions()['reloadDocument']
   );
-  private userPreload = computed(() => this.linkOptions().preload);
-  private userPreloadDelay = computed(() => this.linkOptions().preloadDelay);
+  private userPreload = computed(() => this.linkOptions()['preload']);
+  private userPreloadDelay = computed(() => this.linkOptions()['preloadDelay']);
 
   private activeOptions = computed(
     () => this.linkOptions().activeOptions || this.linkActiveOptions() || {}
@@ -116,11 +118,11 @@ export class Link {
     }
   });
 
-  private from = computed(() => {
-    const userFrom = this.userFrom();
-    if (userFrom) return userFrom;
-    const matches = this.router.matches();
-    return matches[matches.length - 1]?.fullPath;
+  // when `from` is not supplied, use the leaf route of the current matches as the `from` location
+  // so relative routing works as expected
+  private from = matches({
+    select: (matches) =>
+      this.userFrom() ?? matches[matches.length - 1]?.fullPath,
   });
 
   private navigateOptions = computed(() => {
@@ -130,7 +132,7 @@ export class Link {
   private next = computed(() => {
     const [options] = [this.navigateOptions(), this.currentSearch()];
     try {
-      return this.router.buildLocation(options);
+      return this.router.buildLocation(options as any);
     } catch (err) {
       return null;
     }
@@ -166,57 +168,54 @@ export class Link {
   });
 
   transitioning = signal(false);
-  isActive = computed(() => {
-    const [next, location, exact] = [
-      this.next(),
-      this.router.location(),
-      this.exactActiveOptions(),
-    ];
+  isActive = routerState({
+    select: (s) => {
+      const [next, exact] = [this.next(), this.exactActiveOptions()];
+      if (!next) return false;
 
-    if (!next) return false;
-
-    if (exact) {
-      const testExact = exactPathTest(
-        location.pathname,
-        next.pathname,
-        this.router.basepath
-      );
-      if (!testExact) return false;
-    } else {
-      const currentPathSplit = removeTrailingSlash(
-        location.pathname,
-        this.router.basepath
-      ).split('/');
-      const nextPathSplit = removeTrailingSlash(
-        next.pathname,
-        this.router.basepath
-      ).split('/');
-      const pathIsFuzzyEqual = nextPathSplit.every(
-        (d, i) => d === currentPathSplit[i]
-      );
-      if (!pathIsFuzzyEqual) {
-        return false;
+      if (exact) {
+        const testExact = exactPathTest(
+          s.location.pathname,
+          next.pathname,
+          this.router.basepath
+        );
+        if (!testExact) return false;
+      } else {
+        const currentPathSplit = removeTrailingSlash(
+          s.location.pathname,
+          this.router.basepath
+        ).split('/');
+        const nextPathSplit = removeTrailingSlash(
+          next.pathname,
+          this.router.basepath
+        ).split('/');
+        const pathIsFuzzyEqual = nextPathSplit.every(
+          (d, i) => d === currentPathSplit[i]
+        );
+        if (!pathIsFuzzyEqual) {
+          return false;
+        }
       }
-    }
 
-    const includeSearch = this.includeSearchActiveOptions() ?? true;
+      const includeSearch = this.includeSearchActiveOptions() ?? true;
 
-    if (includeSearch) {
-      const searchTest = deepEqual(location.search, next.search, {
-        partial: !exact,
-        ignoreUndefined: !this.explicitUndefinedActiveOptions(),
-      });
-      if (!searchTest) {
-        return false;
+      if (includeSearch) {
+        const searchTest = deepEqual(s.location.search, next.search, {
+          partial: !exact,
+          ignoreUndefined: !this.explicitUndefinedActiveOptions(),
+        });
+        if (!searchTest) {
+          return false;
+        }
       }
-    }
 
-    const includeHash = this.includeHashActiveOptions();
-    if (includeHash) {
-      return location.hash === next.hash;
-    }
+      const includeHash = this.includeHashActiveOptions();
+      if (includeHash) {
+        return s.location.hash === next.hash;
+      }
 
-    return true;
+      return true;
+    },
   });
 
   constructor() {
@@ -257,7 +256,7 @@ export class Link {
     event.preventDefault();
     this.transitioning.set(true);
 
-    this.router.navigate(this.navigateOptions());
+    this.router.navigate(this.navigateOptions() as any);
   }
 
   protected handleFocus() {
@@ -286,7 +285,7 @@ export class Link {
   }
 
   private doPreload() {
-    this.router.preloadRoute(this.navigateOptions()).catch((err) => {
+    this.router.preloadRoute(this.navigateOptions() as any).catch((err) => {
       console.warn(err);
       console.warn(preloadWarning);
     });

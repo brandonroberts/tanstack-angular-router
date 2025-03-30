@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component } from '@angular/core';
 
 @Component({
-  selector: 'default-not-found',
+  selector: 'default-not-found,DefaultNotFound',
   template: `
     <p>Page not found</p>
   `,

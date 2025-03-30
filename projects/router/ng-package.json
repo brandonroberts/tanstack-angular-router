@@ -3,5 +3,13 @@
   "dest": "../../dist/router",
   "lib": {
     "entryFile": "src/public-api.ts"
-  }
+  },
+  "allowedNonPeerDependencies": [
+    "@tanstack/angular-store",
+    "@tanstack/history",
+    "@tanstack/router-core",
+    "@tanstack/router-devtools-core",
+    "tiny-invariant",
+    "tiny-warning"
+  ]
 }
