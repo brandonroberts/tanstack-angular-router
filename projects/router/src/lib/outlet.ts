@@ -66,40 +66,22 @@ export class OnRendered {
     @let match = this.match();
 
     @if (match) {
-      @switch (match.status) {
-        @case ('notFound') {
-          @if (notFoundMatch(); as notFoundMatch) {
-            <ng-container
-              [ngComponentOutlet]="notFoundMatch.component"
-              [ngComponentOutletInjector]="notFoundMatch.injector"
-            />
-          }
-        }
-
-        <!-- TODO: clean this up once Angular supports multiple cases -->
-        @case ('redirected') {
-          @if (matchLoadResource.isLoading()) {
-            @if (pendingMatch(); as pendingMatch) {
-              <ng-container [ngComponentOutlet]="pendingMatch.component" />
-            }
-          }
-        }
-        @case ('pending') {
-          @if (matchLoadResource.isLoading()) {
-            @if (pendingMatch(); as pendingMatch) {
-              <ng-container [ngComponentOutlet]="pendingMatch.component" />
-            }
-          }
-        }
-
-        @case ('error') {
-          @if (errorMatch(); as errorMatch) {
-            <ng-container
-              [ngComponentOutlet]="errorMatch.component"
-              [ngComponentOutletInjector]="errorMatch.injector"
-            />
-          }
-        }
+      @if (match.status === 'notFound' && notFoundMatch()) {
+        <ng-container
+          [ngComponentOutlet]="notFoundMatch()!.component"
+          [ngComponentOutletInjector]="notFoundMatch()!.injector"
+        />
+      } @else if (
+        (match.status === 'redirected' || match.status === 'pending') &&
+        matchLoadResource.isLoading() &&
+        pendingMatch()
+      ) {
+        <ng-container [ngComponentOutlet]="pendingMatch()!.component" />
+      } @else if (match.status === 'error' && errorMatch()) {
+        <ng-container
+          [ngComponentOutlet]="errorMatch()!.component"
+          [ngComponentOutletInjector]="errorMatch()!.injector"
+        />
       }
     }
   `,
@@ -360,6 +342,15 @@ export class RouteMatch {
   }
 }
 
+/**
+ * /dashboard layout
+ *   outlet
+ *     route-match
+ *       /dashboard/ index
+ *       /dashboard/invoices
+ *
+ */
+
 @Component({
   selector: 'outlet,Outlet',
   template: `
@@ -368,19 +359,18 @@ export class RouteMatch {
         [ngComponentOutlet]="notFoundComponentData.component"
         [ngComponentOutletInjector]="notFoundComponentData.injector"
       />
-    } @else {
-      @if (childMatchId(); as childMatchId) {
-        @if (childMatchId === rootRouteId) {
-          @if (matchLoadResource.isLoading()) {
-            @if (defaultPendingComponent) {
-              <ng-container [ngComponentOutlet]="defaultPendingComponent" />
-            }
-          } @else {
-            <route-match [matchId]="childMatchId" />
+    } @else if (childMatchId()) {
+      @let childMatchId = this.childMatchId()!;
+      @if (childMatchId === rootRouteId) {
+        @if (matchLoadResource.isLoading()) {
+          @if (defaultPendingComponent) {
+            <ng-container [ngComponentOutlet]="defaultPendingComponent" />
           }
         } @else {
           <route-match [matchId]="childMatchId" />
         }
+      } @else {
+        <route-match *key="childMatchId" [matchId]="childMatchId" />
       }
     }
   `,
