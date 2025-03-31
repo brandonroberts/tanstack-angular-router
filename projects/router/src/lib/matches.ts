@@ -2,6 +2,7 @@ import {
   assertInInjectionContext,
   ChangeDetectionStrategy,
   Component,
+  ComponentRef,
   computed,
   DestroyRef,
   Directive,
@@ -78,6 +79,8 @@ export class Matches {
   private defaultPendingComponent =
     this.router.options.defaultPendingComponent?.();
 
+  private cmpRef?: ComponentRef<any>;
+
   constructor() {
     effect(() => {
       const loadResourceValue = this.matchLoadResource.value();
@@ -91,15 +94,17 @@ export class Matches {
       }
 
       const [matchId] = [this.rootMatchId(), this.resetKey()];
-
-      this.vcr.clear();
-
       if (!matchId) return;
 
+      if (this.cmpRef) {
+        this.cmpRef.changeDetectorRef.markForCheck();
+        return;
+      }
+
       try {
-        const ref = this.vcr.createComponent(RouteMatch);
-        ref.setInput('matchId', matchId);
-        ref.changeDetectorRef.markForCheck();
+        this.cmpRef = this.vcr.createComponent(RouteMatch);
+        this.cmpRef.setInput('matchId', matchId);
+        this.cmpRef.changeDetectorRef.markForCheck();
       } catch (err) {
         console.error(err);
         const injector = Injector.create({
@@ -119,11 +124,13 @@ export class Matches {
         });
         const ref = this.vcr.createComponent(DefaultError, { injector });
         ref.changeDetectorRef.markForCheck();
+        this.cmpRef = undefined;
       }
     });
 
     inject(DestroyRef).onDestroy(() => {
       this.vcr.clear();
+      this.cmpRef = undefined;
     });
   }
 }
