@@ -1,9 +1,9 @@
-import { NgComponentOutlet } from '@angular/common';
 import {
   assertInInjectionContext,
   ChangeDetectionStrategy,
   Component,
   computed,
+  DestroyRef,
   Directive,
   effect,
   inject,
@@ -33,39 +33,40 @@ import { ERROR_COMPONENT_CONTEXT } from './route';
 import { injectRouter } from './router';
 import { routerState } from './router-state';
 import { Transitioner } from './transitioner';
-import { TryCatch } from './try-catch';
 
 @Component({
   selector: 'matches,Matches',
   template: `
-    <ng-template try [tryCatch]="catchTmpl">
-      @if (rootMatchId(); as rootMatchId) {
-        @if (!matchLoadResource.value()) {
-          @if (defaultPendingComponent) {
-            <ng-container [ngComponentOutlet]="defaultPendingComponent" />
-          }
-        } @else {
-          <route-match [matchId]="rootMatchId" />
-        }
-      }
-    </ng-template>
-    <ng-template #catchTmpl let-error="error">
-      <ng-container
-        [ngComponentOutlet]="defaultErrorComponent"
-        [ngComponentOutletInjector]="getErrorComponentInjector(error)"
-      />
-    </ng-template>
+    <!--    <ng-template try [tryCatch]="catchTmpl">-->
+    <!--      @if (rootMatchId(); as rootMatchId) {-->
+    <!--        @if (!matchLoadResource.value()) {-->
+    <!--          @if (defaultPendingComponent) {-->
+    <!--            <ng-container [ngComponentOutlet]="defaultPendingComponent" />-->
+    <!--          }-->
+    <!--        } @else {-->
+    <!--          <route-match [matchId]="rootMatchId" />-->
+    <!--        }-->
+    <!--      }-->
+    <!--    </ng-template>-->
+    <!--    <ng-template #catchTmpl let-error="error">-->
+    <!--      <ng-container-->
+    <!--        [ngComponentOutlet]="defaultErrorComponent"-->
+    <!--        [ngComponentOutletInjector]="getErrorComponentInjector(error)"-->
+    <!--      />-->
+    <!--    </ng-template>-->
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
   hostDirectives: [Transitioner],
-  imports: [NgComponentOutlet, RouteMatch, TryCatch],
+  // imports: [NgComponentOutlet, RouteMatch, TryCatch],
 })
 export class Matches {
   private router = injectRouter();
   private injector = inject(Injector);
+  private vcr = inject(ViewContainerRef);
 
-  protected rootMatchId = routerState({ select: (s) => s.matches[0]?.id });
-  protected matchLoadResource = resource({
+  private resetKey = routerState({ select: (s) => s.loadedAt.toString() });
+  private rootMatchId = routerState({ select: (s) => s.matches[0]?.id });
+  private matchLoadResource = resource({
     request: this.rootMatchId,
     loader: ({ request }) => {
       if (!request) return Promise.resolve() as any;
@@ -74,26 +75,55 @@ export class Matches {
       return loadPromise.then(() => request);
     },
   });
-  protected defaultPendingComponent =
+  private defaultPendingComponent =
     this.router.options.defaultPendingComponent?.();
-  protected defaultErrorComponent =
-    this.router.options.defaultErrorComponent?.() || DefaultError;
 
-  protected getErrorComponentInjector(error: Error) {
-    return Injector.create({
-      providers: [
-        {
-          provide: ERROR_COMPONENT_CONTEXT,
-          useValue: {
-            error,
-            info: { componentStack: '' },
-            reset: () => {
-              void this.router.invalidate();
+  constructor() {
+    effect(() => {
+      const loadResourceValue = this.matchLoadResource.value();
+      if (!loadResourceValue) {
+        if (this.defaultPendingComponent) {
+          this.vcr.clear();
+          const ref = this.vcr.createComponent(this.defaultPendingComponent);
+          ref.changeDetectorRef.markForCheck();
+        }
+        return;
+      }
+
+      const [matchId] = [this.rootMatchId(), this.resetKey()];
+
+      this.vcr.clear();
+
+      if (!matchId) return;
+
+      try {
+        const ref = this.vcr.createComponent(RouteMatch);
+        ref.setInput('matchId', matchId);
+        ref.changeDetectorRef.markForCheck();
+      } catch (err) {
+        console.error(err);
+        const injector = Injector.create({
+          providers: [
+            {
+              provide: ERROR_COMPONENT_CONTEXT,
+              useValue: {
+                error: err,
+                info: { componentStack: '' },
+                reset: () => {
+                  void this.router.invalidate();
+                },
+              },
             },
-          },
-        },
-      ],
-      parent: this.injector,
+          ],
+          parent: this.injector,
+        });
+        const ref = this.vcr.createComponent(DefaultError, { injector });
+        ref.changeDetectorRef.markForCheck();
+      }
+    });
+
+    inject(DestroyRef).onDestroy(() => {
+      this.vcr.clear();
     });
   }
 }

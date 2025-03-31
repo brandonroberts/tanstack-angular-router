@@ -89,7 +89,7 @@ export function provideRouter(router: AnyRouter) {
     { provide: ROUTER, useValue: router },
     {
       provide: ROUTER_STATE,
-      useFactory: () => injectStore(router.__store, (state) => state),
+      useFactory: () => injectStore(router.__store),
     },
   ];
 }
