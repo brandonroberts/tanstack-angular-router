@@ -1,7 +1,9 @@
 import {
   ChangeDetectionStrategy,
   Component,
+  ComponentRef,
   computed,
+  DestroyRef,
   Directive,
   effect,
   EnvironmentInjector,
@@ -519,6 +521,9 @@ export class Outlet {
     },
   });
 
+  private renderedId?: string;
+  private cmpRef?: ComponentRef<any>;
+
   constructor() {
     effect(() => {
       const parentGlobalNotFound = this.parentGlobalNotFound();
@@ -558,26 +563,33 @@ export class Outlet {
       const childMatchId = this.childMatchId();
       if (!childMatchId) return;
 
-      this.vcr.clear();
-      if (childMatchId === rootRouteId) {
-        if (!this.matchLoadResource.value()) {
-          if (this.defaultPendingComponent) {
-            const ref = this.vcr.createComponent(this.defaultPendingComponent);
-            ref.changeDetectorRef.markForCheck();
-          }
-          return;
-        }
-
-        const ref = this.vcr.createComponent(RouteMatch);
-        ref.setInput('matchId', childMatchId);
-        ref.changeDetectorRef.markForCheck();
+      if (this.renderedId === childMatchId) {
+        this.cmpRef?.changeDetectorRef.markForCheck();
         return;
       }
 
-      const ref = this.vcr.createComponent(RouteMatch);
-      ref.setInput('matchId', childMatchId);
-      ref.changeDetectorRef.markForCheck();
+      this.vcr.clear();
+      this.cmpRef = undefined;
+
+      if (childMatchId === rootRouteId && !this.matchLoadResource.value()) {
+        if (this.defaultPendingComponent) {
+          const ref = this.vcr.createComponent(this.defaultPendingComponent);
+          ref.changeDetectorRef.markForCheck();
+        }
+        return;
+      }
+
+      this.cmpRef = this.vcr.createComponent(RouteMatch);
+      this.cmpRef.setInput('matchId', childMatchId);
+      this.cmpRef.changeDetectorRef.markForCheck();
+      this.renderedId = childMatchId;
       return;
+    });
+
+    inject(DestroyRef).onDestroy(() => {
+      this.vcr.clear();
+      this.cmpRef = undefined;
+      this.renderedId = undefined;
     });
   }
 }
