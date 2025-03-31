@@ -1,9 +1,7 @@
 import {
   ChangeDetectionStrategy,
   Component,
-  ComponentRef,
   computed,
-  DestroyRef,
   Directive,
   effect,
   EnvironmentInjector,
@@ -72,7 +70,7 @@ export class OnRendered {
         />
       } @else if (
         (match.status === 'redirected' || match.status === 'pending') &&
-        matchLoadResource.isLoading() &&
+        !matchLoadResource.value() &&
         pendingMatch()
       ) {
         <ng-container [componentOutlet]="pendingMatch()!.component" />
@@ -100,7 +98,6 @@ export class RouteMatch {
   matchId = input.required<string>();
 
   private isDevMode = isDevMode();
-  private vcr = inject(ViewContainerRef);
   private injector = inject(Injector);
   private environmentInjector = inject(EnvironmentInjector);
   private router = injectRouter();
@@ -159,10 +156,10 @@ export class RouteMatch {
   protected matchLoadResource = resource({
     request: this.match,
     loader: ({ request }) => {
-      if (!request) return Promise.resolve();
+      if (!request) return Promise.resolve() as any;
 
       const loadPromise = this.router.getMatch(request.id)?.loadPromise;
-      if (!loadPromise) return Promise.resolve();
+      if (!loadPromise) return Promise.resolve() as any;
 
       if (request.status === 'pending') {
         const pendingMinMs =
@@ -195,10 +192,12 @@ export class RouteMatch {
           }
         }
 
-        return minPendingPromise?.then(() => loadPromise) || loadPromise;
+        return (minPendingPromise?.then(() => loadPromise) || loadPromise).then(
+          () => request
+        );
       }
 
-      return loadPromise;
+      return loadPromise.then(() => request);
     },
   });
 
@@ -293,9 +292,6 @@ export class RouteMatch {
     return { component: successComponent, injector, environmentInjector };
   });
 
-  private cmpRef?: ComponentRef<any>;
-  private cmp?: Type<any>;
-
   constructor() {
     effect(() => {
       const routeId = this.routeId();
@@ -316,55 +312,7 @@ export class RouteMatch {
         invariant(isRedirect(match.error), 'Expected a redirect error');
         return;
       }
-
-      // if (match.status === 'success') {
-      //   /**
-      //    * NOTE: we need to render the success case via VCR because
-      //    * ngComponentOutlet does not support EnvironmentInjector yet
-      //    */
-      //
-      //   const matchRoute = this.matchRoute();
-      //   if (!matchRoute) return;
-      //
-      //   const currentCmp = matchRoute.options.component?.() || Outlet;
-      //
-      //   if (this.cmp === currentCmp) {
-      //     this.cmpRef?.changeDetectorRef.markForCheck();
-      //   } else {
-      //     this.cleanUpCmpRef();
-      //
-      //     const injector = this.router.getRouteInjector(
-      //       matchRoute.id,
-      //       this.injector
-      //     );
-      //     const environmentInjector = this.router.getRouteEnvInjector(
-      //       matchRoute.id,
-      //       this.environmentInjector,
-      //       matchRoute.options.providers || [],
-      //       this.router
-      //     );
-      //     this.cmp = currentCmp;
-      //     this.cmpRef = this.vcr.createComponent(currentCmp, {
-      //       injector,
-      //       environmentInjector,
-      //     });
-      //     this.cmpRef.changeDetectorRef.markForCheck();
-      //   }
-      // } else {
-      //   this.cleanUpCmpRef();
-      // }
     });
-
-    inject(DestroyRef).onDestroy(() => {
-      this.vcr.clear();
-      this.cleanUpCmpRef();
-    });
-  }
-
-  private cleanUpCmpRef() {
-    this.cmpRef?.destroy();
-    this.cmpRef = undefined;
-    this.cmp = undefined;
   }
 }
 
@@ -379,7 +327,7 @@ export class RouteMatch {
     } @else if (childMatchId()) {
       @let childMatchId = this.childMatchId()!;
       @if (childMatchId === rootRouteId) {
-        @if (matchLoadResource.isLoading()) {
+        @if (!matchLoadResource.value()) {
           @if (defaultPendingComponent) {
             <ng-container [componentOutlet]="defaultPendingComponent" />
           }
@@ -418,12 +366,10 @@ export class Outlet {
       const parentMatch = s.matches.find((d) => d.id === closestMatchId);
 
       if (!parentMatch) {
-        if (this.closestMatch['cmp']) {
-          warning(
-            false,
-            `Could not find parent match for matchId "${closestMatchId}". Please file an issue!`
-          );
-        }
+        warning(
+          false,
+          `Could not find parent match for matchId "${closestMatchId}". Please file an issue!`
+        );
         return false;
       }
 
@@ -477,9 +423,10 @@ export class Outlet {
   protected matchLoadResource = resource({
     request: this.childMatchId,
     loader: ({ request }) => {
+      if (!request) return Promise.resolve() as any;
       const loadPromise = this.router.getMatch(request)?.loadPromise;
-      if (!loadPromise) return Promise.resolve();
-      return loadPromise;
+      if (!loadPromise) return Promise.resolve() as any;
+      return loadPromise.then(() => request);
     },
   });
 }

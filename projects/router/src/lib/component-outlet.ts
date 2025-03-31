@@ -8,7 +8,6 @@
 
 import {
   ComponentRef,
-  computed,
   DestroyRef,
   Directive,
   effect,
@@ -28,53 +27,34 @@ import {
 
 @Directive({ selector: '[componentOutlet]', exportAs: 'componentOutlet' })
 export class ComponentOutlet<T = any> {
-  componentOutlet = input.required<Type<any>>();
+  componentOutlet = input.required<Type<unknown>>();
   componentOutletInputs = input<Record<string, unknown>>();
   componentOutletInjector = input<Injector>();
   componentOutletEnvironmentInjector = input<EnvironmentInjector>();
 
-  private previousComponentOutlet = linkedSignal({
+  private previousComponentOutlet = linkedSignal<
+    Type<unknown>,
+    Type<unknown> | null
+  >({
     source: this.componentOutlet,
     computation: (_, prev) => prev?.source ?? null,
   });
-  private previousComponentOutletInjector = linkedSignal({
+  private previousComponentOutletInjector = linkedSignal<
+    Injector | undefined,
+    Injector | null
+  >({
     source: this.componentOutletInjector,
     computation: (_, prev) => prev?.source ?? null,
   });
-  private previousComponentOutletEnvironmentInjector = linkedSignal({
+  private previousComponentOutletEnvironmentInjector = linkedSignal<
+    EnvironmentInjector | undefined,
+    EnvironmentInjector | null
+  >({
     source: this.componentOutletEnvironmentInjector,
     computation: (_, prev) => prev?.source ?? null,
   });
 
-  private needToRecreateComponentInstance = computed(() => {
-    const [componentOutlet, previousComponentOutlet] = [
-      this.componentOutlet(),
-      this.previousComponentOutlet(),
-    ];
-    if (componentOutlet !== previousComponentOutlet) return true;
-
-    const [componentOutletInjector, previousComponentOutletInjector] = [
-      this.componentOutletInjector(),
-      this.previousComponentOutletInjector(),
-    ];
-    if (componentOutletInjector !== previousComponentOutletInjector)
-      return true;
-
-    const [
-      componentOutletEnvironmentInjector,
-      previousComponentOutletEnvironmentInjector,
-    ] = [
-      this.componentOutletEnvironmentInjector(),
-      this.previousComponentOutletEnvironmentInjector(),
-    ];
-
-    return (
-      componentOutletEnvironmentInjector !==
-      previousComponentOutletEnvironmentInjector
-    );
-  });
-
-  private _componentRef: ComponentRef<T> | undefined;
+  private _componentRef: ComponentRef<unknown> | undefined;
 
   /**
    * A helper data structure that allows us to track inputs that were part of the
@@ -83,47 +63,52 @@ export class ComponentOutlet<T = any> {
    */
   private _inputsUsed = new Map<string, boolean>();
 
-  /**
-   * Gets the instance of the currently-rendered component.
-   * Will be null if no component has been rendered.
-   */
-  get componentInstance(): T | null {
-    return this._componentRef?.instance ?? null;
-  }
-
   private environmentInjector = inject(EnvironmentInjector);
   private viewContainerRef = inject(ViewContainerRef);
 
   constructor() {
     effect(() => {
-      const needToRecreateComponentInstance =
-        this.needToRecreateComponentInstance();
-      if (!needToRecreateComponentInstance) {
+      const [
+        componentOutlet,
+        previousComponentOutlet,
+        componentOutletInjector,
+        previousComponentOutletInjector,
+        componentOutletEnvironmentInjector,
+        previousComponentOutletEnvironmentInjector,
+        componentOutletInputs,
+      ] = [
+        this.componentOutlet(),
+        this.previousComponentOutlet(),
+        this.componentOutletInjector(),
+        this.previousComponentOutletInjector(),
+        this.componentOutletEnvironmentInjector(),
+        this.previousComponentOutletEnvironmentInjector(),
+        untracked(this.componentOutletInputs),
+      ];
+
+      if (
+        !this.needToRecreateComponentInstance(
+          componentOutlet,
+          previousComponentOutlet,
+          componentOutletInjector,
+          previousComponentOutletInjector,
+          componentOutletEnvironmentInjector,
+          previousComponentOutletEnvironmentInjector
+        )
+      ) {
         if (this._componentRef) {
           const inputs = untracked(this.componentOutletInputs);
           if (inputs) {
             for (const inputName of Object.keys(inputs)) {
               this._inputsUsed.set(inputName, true);
             }
-            this._applyInputStateDiff(this._componentRef, inputs);
+            this.applyInputStateDiff(this._componentRef, inputs);
           }
           this._componentRef.changeDetectorRef.markForCheck();
         }
 
         return;
       }
-
-      const [
-        componentOutlet,
-        componentOutletInputs,
-        componentOutletInjector,
-        componentOutletEnvironmentInjector,
-      ] = [
-        untracked(this.componentOutlet),
-        untracked(this.componentOutletInputs),
-        untracked(this.componentOutletInjector),
-        untracked(this.componentOutletEnvironmentInjector),
-      ];
 
       this.viewContainerRef.clear();
       this._inputsUsed.clear();
@@ -143,8 +128,9 @@ export class ComponentOutlet<T = any> {
         for (const inputName of Object.keys(componentOutletInputs)) {
           this._inputsUsed.set(inputName, true);
         }
-        this._applyInputStateDiff(this._componentRef, componentOutletInputs);
+        this.applyInputStateDiff(this._componentRef, componentOutletInputs);
       }
+      this._componentRef.changeDetectorRef.markForCheck();
     });
 
     inject(DestroyRef).onDestroy(() => {
@@ -155,7 +141,23 @@ export class ComponentOutlet<T = any> {
     });
   }
 
-  private _applyInputStateDiff(
+  private needToRecreateComponentInstance(
+    componentOutlet: Type<unknown>,
+    previousComponentOutlet: Type<unknown> | null,
+    componentOutletInjector: Injector | undefined,
+    previousComponentOutletInjector: Injector | null,
+    componentOutletEnvironmentInjector: EnvironmentInjector | undefined,
+    previousComponentOutletEnvironmentInjector: EnvironmentInjector | null
+  ) {
+    return (
+      componentOutlet !== previousComponentOutlet ||
+      componentOutletInjector !== previousComponentOutletInjector ||
+      componentOutletEnvironmentInjector !==
+        previousComponentOutletEnvironmentInjector
+    );
+  }
+
+  private applyInputStateDiff(
     componentRef: ComponentRef<unknown>,
     inputs: Record<string, unknown>
   ) {

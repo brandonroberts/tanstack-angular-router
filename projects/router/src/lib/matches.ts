@@ -40,7 +40,7 @@ import { TryCatch } from './try-catch';
   template: `
     <ng-template try [tryCatch]="catchTmpl">
       @if (rootMatchId(); as rootMatchId) {
-        @if (matchLoadResource.isLoading()) {
+        @if (!matchLoadResource.value()) {
           @if (defaultPendingComponent) {
             <ng-container [ngComponentOutlet]="defaultPendingComponent" />
           }
@@ -68,10 +68,10 @@ export class Matches {
   protected matchLoadResource = resource({
     request: this.rootMatchId,
     loader: ({ request }) => {
-      if (!request) return Promise.resolve();
+      if (!request) return Promise.resolve() as any;
       const loadPromise = this.router.getMatch(request)?.loadPromise;
-      if (!loadPromise) return Promise.resolve();
-      return loadPromise;
+      if (!loadPromise) return Promise.resolve() as any;
+      return loadPromise.then(() => request);
     },
   });
   protected defaultPendingComponent =
