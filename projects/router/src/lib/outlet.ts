@@ -25,6 +25,7 @@ import warning from 'tiny-warning';
 import { ComponentOutlet } from './component-outlet';
 import { DefaultError } from './default-error';
 import { DefaultNotFound } from './default-not-found';
+import { Key } from './key';
 import { ERROR_COMPONENT_CONTEXT, NOT_FOUND_COMPONENT_CONTEXT } from './route';
 import { injectRouter } from './router';
 import { routerState } from './router-state';
@@ -63,36 +64,38 @@ export class OnRendered {
     @let match = this.match();
 
     @if (match) {
-      @if (match.status === 'notFound' && notFoundMatch()) {
-        <ng-container
-          [componentOutlet]="notFoundMatch()!.component"
-          [componentOutletInjector]="notFoundMatch()!.injector"
-        />
-      } @else if (
-        (match.status === 'redirected' || match.status === 'pending') &&
-        !matchLoadResource.value() &&
-        pendingMatch()
-      ) {
-        <ng-container [componentOutlet]="pendingMatch()!.component" />
-      } @else if (match.status === 'error' && errorMatch()) {
-        <ng-container
-          [componentOutlet]="errorMatch()!.component"
-          [componentOutletInjector]="errorMatch()!.injector"
-        />
-      } @else if (match.status === 'success' && successMatch()) {
-        <ng-container
-          [componentOutlet]="successMatch()!.component"
-          [componentOutletInjector]="successMatch()!.injector"
-          [componentOutletEnvironmentInjector]="
-            successMatch()!.environmentInjector
-          "
-        />
-      }
+      <ng-template [key]="resetKey()">
+        @if (match.status === 'notFound' && notFoundMatch()) {
+          <ng-container
+            [componentOutlet]="notFoundMatch()!.component"
+            [componentOutletInjector]="notFoundMatch()!.injector"
+          />
+        } @else if (
+          (match.status === 'redirected' || match.status === 'pending') &&
+          !matchLoadResource.value() &&
+          pendingMatch()
+        ) {
+          <ng-container [componentOutlet]="pendingMatch()!.component" />
+        } @else if (match.status === 'error' && errorMatch()) {
+          <ng-container
+            [componentOutlet]="errorMatch()!.component"
+            [componentOutletInjector]="errorMatch()!.injector"
+          />
+        } @else if (match.status === 'success' && successMatch()) {
+          <ng-container
+            [componentOutlet]="successMatch()!.component"
+            [componentOutletInjector]="successMatch()!.injector"
+            [componentOutletEnvironmentInjector]="
+              successMatch()!.environmentInjector
+            "
+          />
+        }
+      </ng-template>
     }
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
   hostDirectives: [OnRendered],
-  imports: [ComponentOutlet],
+  imports: [ComponentOutlet, Key],
 })
 export class RouteMatch {
   matchId = input.required<string>();
@@ -101,6 +104,10 @@ export class RouteMatch {
   private injector = inject(Injector);
   private environmentInjector = inject(EnvironmentInjector);
   private router = injectRouter();
+
+  protected resetKey = routerState({
+    select: (s) => s.loadedAt.toString(),
+  });
   private routeId = routerState({
     select: (s) =>
       s.matches.find((d) => d.id === this.matchId())?.routeId as string,
