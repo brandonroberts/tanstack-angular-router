@@ -298,6 +298,9 @@ export class RouteMatch {
   //   return { component: successComponent, injector, environmentInjector };
   // });
 
+  private cmp?: Type<any>;
+  private cmpRef?: ComponentRef<any>;
+
   constructor() {
     effect(() => {
       const routeId = this.routeId();
@@ -311,8 +314,6 @@ export class RouteMatch {
 
       const [route] = [this.matchRoute(), this.resetKey()];
       if (!route) return;
-
-      this.vcr.clear();
 
       if (match.status === 'notFound') {
         invariant(isNotFound(match.error), 'Expected a notFound error');
@@ -341,6 +342,7 @@ export class RouteMatch {
           this.injector,
           [{ provide: NOT_FOUND_COMPONENT_CONTEXT, useValue: {} }]
         );
+        this.vcr.clear();
         const ref = this.vcr.createComponent(notFoundCmp, { injector });
         ref.changeDetectorRef.markForCheck();
         return;
@@ -354,7 +356,7 @@ export class RouteMatch {
         if (!this.matchLoadResource.value()) {
           const pendingComponent = this.pendingComponent()?.();
           if (!pendingComponent) return;
-
+          this.vcr.clear();
           const ref = this.vcr.createComponent(pendingComponent);
           ref.changeDetectorRef.markForCheck();
         }
@@ -380,6 +382,8 @@ export class RouteMatch {
             },
           ]
         );
+
+        this.vcr.clear();
         const ref = this.vcr.createComponent(errorComponent, { injector });
         ref.changeDetectorRef.markForCheck();
         return;
@@ -387,6 +391,14 @@ export class RouteMatch {
 
       if (match.status === 'success') {
         const successComponent = route.options.component?.() || Outlet;
+
+        if (this.cmp === successComponent) {
+          this.cmpRef?.changeDetectorRef.markForCheck();
+          return;
+        }
+
+        this.vcr.clear();
+        this.cmpRef = undefined;
         const injector = this.router.getRouteInjector(route.id, this.injector);
         const environmentInjector = this.router.getRouteEnvInjector(
           route.id,
@@ -394,14 +406,21 @@ export class RouteMatch {
           route.options.providers || [],
           this.router
         );
-        const ref = this.vcr.createComponent(successComponent, {
+        this.cmpRef = this.vcr.createComponent(successComponent, {
           injector,
           environmentInjector,
         });
-        ref.changeDetectorRef.markForCheck();
+        this.cmpRef.changeDetectorRef.markForCheck();
+        this.cmp = successComponent;
       }
 
       return;
+    });
+
+    inject(DestroyRef).onDestroy(() => {
+      this.vcr.clear();
+      this.cmpRef = undefined;
+      this.cmp = undefined;
     });
   }
 }
