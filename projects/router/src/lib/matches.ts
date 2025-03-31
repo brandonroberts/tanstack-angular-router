@@ -1,12 +1,15 @@
+import { NgComponentOutlet } from '@angular/common';
 import {
   assertInInjectionContext,
-  ComponentRef,
+  ChangeDetectionStrategy,
+  Component,
   computed,
   Directive,
   effect,
   inject,
   Injector,
   input,
+  resource,
   runInInjectionContext,
   Signal,
   TemplateRef,
@@ -26,48 +29,71 @@ import {
 } from '@tanstack/router-core';
 import { DefaultError } from './default-error';
 import { RouteMatch } from './outlet';
+import { ERROR_COMPONENT_CONTEXT } from './route';
 import { injectRouter } from './router';
 import { routerState } from './router-state';
 import { Transitioner } from './transitioner';
+import { TryCatch } from './try-catch';
 
-@Directive({ hostDirectives: [Transitioner] })
+@Component({
+  selector: 'matches,Matches',
+  template: `
+    <ng-template try [tryCatch]="catchTmpl">
+      @if (rootMatchId(); as rootMatchId) {
+        @if (matchLoadResource.isLoading()) {
+          @if (defaultPendingComponent) {
+            <ng-container [ngComponentOutlet]="defaultPendingComponent" />
+          }
+        } @else {
+          <route-match [matchId]="rootMatchId" />
+        }
+      }
+    </ng-template>
+    <ng-template #catchTmpl let-error="error">
+      <ng-container
+        [ngComponentOutlet]="defaultErrorComponent"
+        [ngComponentOutletInjector]="getErrorComponentInjector(error)"
+      />
+    </ng-template>
+  `,
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  hostDirectives: [Transitioner],
+  imports: [NgComponentOutlet, RouteMatch, TryCatch],
+})
 export class Matches {
   private router = injectRouter();
-  private vcr = inject(ViewContainerRef);
+  private injector = inject(Injector);
 
-  private matchId = routerState({ select: (s) => s.matches[0]?.id });
+  protected rootMatchId = routerState({ select: (s) => s.matches[0]?.id });
+  protected matchLoadResource = resource({
+    request: this.rootMatchId,
+    loader: ({ request }) => {
+      if (!request) return Promise.resolve();
+      const loadPromise = this.router.getMatch(request)?.loadPromise;
+      if (!loadPromise) return Promise.resolve();
+      return loadPromise;
+    },
+  });
+  protected defaultPendingComponent =
+    this.router.options.defaultPendingComponent?.();
+  protected defaultErrorComponent =
+    this.router.options.defaultErrorComponent?.() || DefaultError;
 
-  constructor() {
-    effect((onCleanup) => {
-      const matchId = this.matchId();
-      if (!matchId) return;
-
-      try {
-        let ref: ComponentRef<any> | undefined = undefined;
-
-        if (this.router.options.defaultPendingComponent) {
-          ref = this.vcr.createComponent(
-            this.router.options.defaultPendingComponent()
-          );
-          ref.changeDetectorRef.markForCheck();
-        }
-
-        this.router.getMatch(matchId)?.loadPromise?.then(() => {
-          ref?.destroy();
-          ref = this.vcr.createComponent(RouteMatch);
-          ref.setInput('matchId', matchId);
-          ref.changeDetectorRef.markForCheck();
-        });
-        onCleanup(() => ref?.destroy());
-      } catch (err) {
-        console.error(err);
-        const errorCmp =
-          this.router.options.defaultErrorComponent?.() || DefaultError;
-        const ref = this.vcr.createComponent(errorCmp);
-        ref.setInput('error', err);
-        ref.changeDetectorRef.markForCheck();
-        onCleanup(() => ref.destroy());
-      }
+  protected getErrorComponentInjector(error: Error) {
+    return Injector.create({
+      providers: [
+        {
+          provide: ERROR_COMPONENT_CONTEXT,
+          useValue: {
+            error,
+            info: { componentStack: '' },
+            reset: () => {
+              void this.router.invalidate();
+            },
+          },
+        },
+      ],
+      parent: this.injector,
     });
   }
 }

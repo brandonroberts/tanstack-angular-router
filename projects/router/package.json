@@ -1,6 +1,6 @@
 {
   "name": "tanstack-angular-router-experimental",
-  "version": "0.0.45",
+  "version": "0.0.46",
   "dependencies": {
     "@tanstack/angular-store": "^0.7.0",
     "@tanstack/history": "^1.114.29",
