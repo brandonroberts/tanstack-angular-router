@@ -24,9 +24,13 @@ export class Transitioner {
 
   private hasPendingMatches = routerState({
     select: (s) => s.matches.some((d) => d.status === 'pending'),
+    equal: () => false,
   });
 
-  private isLoading = routerState({ select: (s) => s.isLoading });
+  private isLoading = routerState({
+    select: (s) => s.isLoading,
+    equal: () => false,
+  });
   private previousIsLoading = linkedSignal<boolean, boolean>({
     source: this.isLoading,
     computation: (src, prev) => prev?.source ?? src,
@@ -35,7 +39,9 @@ export class Transitioner {
   private isTransitioning = signal(false);
 
   private isAnyPending = computed(
-    () => this.isLoading() || this.isTransitioning() || this.hasPendingMatches()
+    () =>
+      this.isLoading() || this.isTransitioning() || this.hasPendingMatches(),
+    { equal: () => false }
   );
   private previousIsAnyPending = linkedSignal<boolean, boolean>({
     source: this.isAnyPending,
@@ -43,7 +49,8 @@ export class Transitioner {
   });
 
   private isPagePending = computed(
-    () => this.isLoading() || this.hasPendingMatches()
+    () => this.isLoading() || this.hasPendingMatches(),
+    { equal: () => false }
   );
   private previousIsPagePending = linkedSignal<boolean, boolean>({
     source: this.isPagePending,

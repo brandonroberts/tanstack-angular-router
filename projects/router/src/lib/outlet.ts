@@ -416,6 +416,7 @@ export class Outlet {
       const index = matches.findIndex(
         (d) => d.id === this.closestMatch.matchId()
       );
+      if (index === -1) return null;
       return matches[index + 1]?.id;
     },
   });
