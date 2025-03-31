@@ -64,33 +64,31 @@ export class OnRendered {
     @let match = this.match();
 
     @if (match) {
-      <ng-template [key]="resetKey()">
-        @if (match.status === 'notFound' && notFoundMatch()) {
-          <ng-container
-            [componentOutlet]="notFoundMatch()!.component"
-            [componentOutletInjector]="notFoundMatch()!.injector"
-          />
-        } @else if (
-          (match.status === 'redirected' || match.status === 'pending') &&
-          !matchLoadResource.value() &&
-          pendingMatch()
-        ) {
-          <ng-container [componentOutlet]="pendingMatch()!.component" />
-        } @else if (match.status === 'error' && errorMatch()) {
-          <ng-container
-            [componentOutlet]="errorMatch()!.component"
-            [componentOutletInjector]="errorMatch()!.injector"
-          />
-        } @else if (match.status === 'success' && successMatch()) {
-          <ng-container
-            [componentOutlet]="successMatch()!.component"
-            [componentOutletInjector]="successMatch()!.injector"
-            [componentOutletEnvironmentInjector]="
-              successMatch()!.environmentInjector
-            "
-          />
-        }
-      </ng-template>
+      @if (match.status === 'notFound' && notFoundMatch()) {
+        <ng-container
+          [componentOutlet]="notFoundMatch()!.component"
+          [componentOutletInjector]="notFoundMatch()!.injector"
+        />
+      } @else if (
+        (match.status === 'redirected' || match.status === 'pending') &&
+        !matchLoadResource.value() &&
+        pendingMatch()
+      ) {
+        <ng-container [componentOutlet]="pendingMatch()!.component" />
+      } @else if (match.status === 'error' && errorMatch()) {
+        <ng-container
+          [componentOutlet]="errorMatch()!.component"
+          [componentOutletInjector]="errorMatch()!.injector"
+        />
+      } @else if (match.status === 'success' && successMatch()) {
+        <ng-container
+          [componentOutlet]="successMatch()!.component"
+          [componentOutletInjector]="successMatch()!.injector"
+          [componentOutletEnvironmentInjector]="
+            successMatch()!.environmentInjector
+          "
+        />
+      }
     }
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -105,9 +103,6 @@ export class RouteMatch {
   private environmentInjector = inject(EnvironmentInjector);
   private router = injectRouter();
 
-  protected resetKey = routerState({
-    select: (s) => s.loadedAt.toString(),
-  });
   private routeId = routerState({
     select: (s) =>
       s.matches.find((d) => d.id === this.matchId())?.routeId as string,
@@ -342,11 +337,11 @@ export class RouteMatch {
           <route-match [matchId]="childMatchId" />
         }
       } @else {
-        <route-match [matchId]="childMatchId" />
+        <route-match *key="resetKey()" [matchId]="childMatchId" />
       }
     }
   `,
-  imports: [RouteMatch, ComponentOutlet],
+  imports: [RouteMatch, ComponentOutlet, Key],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class Outlet {
@@ -358,6 +353,10 @@ export class Outlet {
   protected readonly rootRouteId = rootRouteId;
   protected readonly defaultPendingComponent =
     this.router.options.defaultPendingComponent?.();
+
+  protected resetKey = routerState({
+    select: (s) => s.loadedAt.toString(),
+  });
 
   private routeId = routerState({
     select: (s) =>
