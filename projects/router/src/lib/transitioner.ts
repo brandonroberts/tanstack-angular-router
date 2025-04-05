@@ -83,6 +83,7 @@ export class Transitioner implements OnInit {
           type: 'onLoad',
           ...getLocationChangeInfo(this.router.state),
         });
+        this.router.__store.setState((s) => ({ ...s, status: 'idle' }));
       }
     })
   );
