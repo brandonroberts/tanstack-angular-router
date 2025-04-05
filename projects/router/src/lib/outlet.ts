@@ -7,6 +7,7 @@ import {
   Directive,
   EnvironmentInjector,
   inject,
+  InjectionToken,
   Injector,
   input,
   Type,
@@ -83,13 +84,16 @@ export class OnRendered {
   }
 }
 
+export const MATCH_ID = new InjectionToken<string>('MATCH_ID');
+export const MATCH_IDS = new InjectionToken<string[]>('MATCH_IDS');
+
 @Component({
   selector: 'route-match,RouteMatch',
   template: ``,
   hostDirectives: [OnRendered],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: {
-    '[data-matchId]': 'matchId()',
+    '[attr.data-matchId]': 'matchId()',
   },
 })
 export class RouteMatch {
@@ -321,7 +325,16 @@ export class RouteMatch {
 
             return of({
               component: successComponent,
-              injector,
+              injector: Injector.create({
+                providers: [
+                  { provide: MATCH_ID, useValue: match.id },
+                  {
+                    provide: MATCH_IDS,
+                    useValue: [match.id, this.matchId(), route.id],
+                  },
+                ],
+                parent: injector,
+              }),
               environmentInjector,
               clearView: true,
             } as const);
@@ -389,7 +402,8 @@ export class RouteMatch {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class Outlet {
-  private closestMatch = inject(RouteMatch);
+  private matchId = inject(MATCH_ID);
+  private matchIds = inject(MATCH_IDS);
   private router = injectRouter();
   private vcr = inject(ViewContainerRef);
   private isDevMode = isDevMode();
@@ -398,13 +412,9 @@ export class Outlet {
     this.router.options.defaultPendingComponent?.();
 
   private matches$ = routerState$({ select: (s) => s.matches });
-  private routeId$ = combineLatest([
-    this.closestMatch.matchId$,
-    this.matches$,
-  ]).pipe(
+  private routeId$ = this.matches$.pipe(
     map(
-      ([matchId, matches]) =>
-        matches.find((d) => d.id === matchId)?.routeId as string
+      (matches) => matches.find((d) => d.id === this.matchId)?.routeId as string
     ),
     distinctUntilRefChanged()
   );
@@ -412,17 +422,14 @@ export class Outlet {
     map((routeId) => this.router.routesById[routeId]),
     distinctUntilRefChanged()
   );
-  private parentGlobalNotFound$ = combineLatest([
-    this.matches$,
-    this.closestMatch.matchId$,
-  ]).pipe(
-    map(([matches, closestMatchId]) => {
-      console.log(this.vcr.element.nativeElement);
-      const parentMatch = matches.find((d) => d.id === closestMatchId);
+  private parentGlobalNotFound$ = this.matches$.pipe(
+    map((matches) => {
+      console.log(this.vcr.element.nativeElement, { matchIds: this.matchIds });
+      const parentMatch = matches.find((d) => d.id === this.matchId);
       if (!parentMatch) {
         warning(
           false,
-          `Could not find parent match for matchId "${closestMatchId}". Please file an issue!`
+          `Could not find parent match for matchId "${this.matchId}". Please file an issue!`
         );
         return false;
       }
@@ -430,12 +437,9 @@ export class Outlet {
     })
   );
 
-  private childMatchId$ = combineLatest([
-    this.matches$,
-    this.closestMatch.matchId$,
-  ]).pipe(
-    map(([matches, closestMatchId]) => {
-      const index = matches.findIndex((d) => d.id === closestMatchId);
+  private childMatchId$ = this.matches$.pipe(
+    map((matches) => {
+      const index = matches.findIndex((d) => d.id === this.matchId);
       if (index === -1) return null;
       return matches[index + 1]?.id;
     }),

@@ -18,7 +18,7 @@ import {
 } from '@tanstack/router-core';
 import { combineLatest, map, Observable } from 'rxjs';
 import invariant from 'tiny-invariant';
-import { RouteMatch } from './outlet';
+import { MATCH_ID } from './outlet';
 import { routerState$ } from './router-state';
 
 export interface MatchBaseOptions<
@@ -89,10 +89,10 @@ export function match$<
   }
 
   return runInInjectionContext(injector, () => {
-    const closestMatch = inject(RouteMatch, { optional: true });
+    const closestMatchId = inject(MATCH_ID, { optional: true });
     const nearestMatchId = computed(() => {
       if (opts.from) return null;
-      return closestMatch?.matchId();
+      return closestMatchId;
     });
 
     return combineLatest([

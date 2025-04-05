@@ -10,7 +10,7 @@ import {
   Signal,
   ViewContainerRef,
 } from '@angular/core';
-import { toObservable, toSignal } from '@angular/core/rxjs-interop';
+import { toSignal } from '@angular/core/rxjs-interop';
 import {
   AnyRouter,
   MakeRouteMatchUnion,
@@ -27,7 +27,7 @@ import {
 } from 'rxjs';
 import { DefaultError } from './default-error';
 import { distinctUntilRefChanged } from './distinct-until-ref-changed';
-import { RouteMatch } from './outlet';
+import { MATCH_ID, RouteMatch } from './outlet';
 import { ERROR_COMPONENT_CONTEXT } from './route';
 import { injectRouter } from './router';
 import { routerState$ } from './router-state';
@@ -207,15 +207,12 @@ export function parentMatches$<
   }
 
   return runInInjectionContext(injector, () => {
-    const closestMatch = inject(RouteMatch);
-    return combineLatest([
-      routerState$({ injector, select: (s) => s.matches }),
-      toObservable(closestMatch.matchId),
-    ]).pipe(
-      map(([matches, matchId]) => {
+    const closestMatch = inject(MATCH_ID);
+    return routerState$({ injector, select: (s) => s.matches }).pipe(
+      map((matches) => {
         const sliced = matches.slice(
           0,
-          matches.findIndex((d) => d.id === matchId)
+          matches.findIndex((d) => d.id === closestMatch)
         );
         return opts.select
           ? opts.select(sliced as Array<MakeRouteMatchUnion<TRouter>>)
@@ -260,14 +257,11 @@ export function childMatches$<
   }
 
   return runInInjectionContext(injector, () => {
-    const closestMatch = inject(RouteMatch);
-    return combineLatest([
-      routerState$({ injector, select: (s) => s.matches }),
-      toObservable(closestMatch.matchId),
-    ]).pipe(
-      map(([matches, matchId]) => {
+    const closestMatch = inject(MATCH_ID);
+    return routerState$({ injector, select: (s) => s.matches }).pipe(
+      map((matches) => {
         const sliced = matches.slice(
-          matches.findIndex((d) => d.id === matchId) + 1
+          matches.findIndex((d) => d.id === closestMatch) + 1
         );
         return opts.select
           ? opts.select(sliced as Array<MakeRouteMatchUnion<TRouter>>)
