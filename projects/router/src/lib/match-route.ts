@@ -8,6 +8,7 @@ import {
   Injector,
   input,
   runInInjectionContext,
+  Signal,
   TemplateRef,
   ViewContainerRef,
 } from '@angular/core';
@@ -22,7 +23,7 @@ import {
   MatchRouteOptions as TanstackMatchRouteOptions,
   ToSubOptionsProps,
 } from '@tanstack/router-core';
-import { combineLatest, map, Subscription, switchMap } from 'rxjs';
+import { map, Observable, Subscription, switchMap } from 'rxjs';
 import { injectRouter } from './router';
 import { routerState$ } from './router-state';
 
@@ -124,6 +125,7 @@ export class MatchRoute<
   private params$ = toObservable(this.matchRoute).pipe(
     switchMap((matchRoute) => this.matchRouteFn(matchRoute as any))
   );
+  private params = toSignal(this.params$);
 
   private vcr = inject(ViewContainerRef);
   private templateRef = inject(TemplateRef);
@@ -133,18 +135,18 @@ export class MatchRoute<
   constructor() {
     let subscription: Subscription;
     afterNextRender(() => {
-      subscription = combineLatest([this.params$, this.status$]).subscribe(
-        ([params]) => {
-          if (this.ref) {
-            this.ref.destroy();
-          }
-
-          this.ref = this.vcr.createEmbeddedView(this.templateRef, {
-            match: params,
-          });
+      subscription = this.status$.subscribe(() => {
+        if (this.ref) {
           this.ref.markForCheck();
+          return;
         }
-      );
+
+        this.ref = this.vcr.createEmbeddedView(this.templateRef, {
+          match: this.params,
+          match$: this.params$,
+        });
+        this.ref.markForCheck();
+      });
     });
 
     inject(DestroyRef).onDestroy(() => {
@@ -163,7 +165,7 @@ export class MatchRoute<
   >(
     _: MatchRoute<TRouter, TFrom, TTo, TMaskFrom, TMaskTo>,
     ctx: unknown
-  ): ctx is { match: boolean } {
+  ): ctx is { match: Signal<boolean>; match$: Observable<boolean> } {
     return true;
   }
 }
