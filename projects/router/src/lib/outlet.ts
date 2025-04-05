@@ -1,179 +1,174 @@
 import {
+  afterNextRender,
   ChangeDetectionStrategy,
   Component,
   ComponentRef,
-  computed,
   DestroyRef,
   Directive,
-  effect,
   EnvironmentInjector,
   inject,
   Injector,
   input,
-  resource,
   Type,
   ViewContainerRef,
 } from '@angular/core';
+import { toObservable } from '@angular/core/rxjs-interop';
 import {
   createControlledPromise,
   getLocationChangeInfo,
   isNotFound,
   isRedirect,
+  pick,
   rootRouteId,
-  pick as routerCorePick,
 } from '@tanstack/router-core';
+import {
+  catchError,
+  combineLatest,
+  distinctUntilChanged,
+  filter,
+  map,
+  of,
+  Subscription,
+  switchMap,
+  throwError,
+  withLatestFrom,
+} from 'rxjs';
 import invariant from 'tiny-invariant';
 import warning from 'tiny-warning';
-import { ComponentOutlet } from './component-outlet';
 import { DefaultError } from './default-error';
 import { DefaultNotFound } from './default-not-found';
-import { Key } from './key';
+import { distinctUntilRefChanged } from './distinct-until-ref-changed';
+import { isDevMode } from './is-dev-mode';
 import { ERROR_COMPONENT_CONTEXT, NOT_FOUND_COMPONENT_CONTEXT } from './route';
 import { injectRouter } from './router';
-import { routerState } from './router-state';
-import { isDevMode } from './utils';
+import { routerState$ } from './router-state';
 
 @Directive()
 export class OnRendered {
   private match = inject(RouteMatch);
   private router = injectRouter();
-  private parentRouteId = routerState({
-    select: (s) => {
-      const index = s.matches.findIndex((d) => d.id === this.match.matchId());
-      return s.matches[index - 1]?.routeId as string;
-    },
-  });
-  private location = routerState({
+
+  private parentRouteId$ = combineLatest([
+    this.match.matchId$,
+    routerState$({ select: (s) => s.matches }),
+  ]).pipe(
+    map(
+      ([matchId, matches]) =>
+        matches.find((d) => d.id === matchId)?.routeId as string
+    ),
+    distinctUntilRefChanged()
+  );
+  private location$ = routerState$({
     select: (s) => s.resolvedLocation?.state.key,
   });
 
   constructor() {
-    effect(() => {
-      const [parentRouteId] = [this.parentRouteId(), this.location()];
-      if (!parentRouteId || parentRouteId !== rootRouteId) return;
-
-      this.router.emit({
-        type: 'onRendered',
-        ...getLocationChangeInfo(this.router.state),
+    let subscription: Subscription;
+    afterNextRender(() => {
+      subscription = combineLatest([
+        this.parentRouteId$,
+        this.location$,
+      ]).subscribe(([parentRouteId]) => {
+        if (!parentRouteId || parentRouteId !== rootRouteId) return;
+        this.router.emit({
+          type: 'onRendered',
+          ...getLocationChangeInfo(this.router.state),
+        });
       });
+    });
+
+    inject(DestroyRef).onDestroy(() => {
+      subscription?.unsubscribe();
     });
   }
 }
 
 @Component({
   selector: 'route-match,RouteMatch',
-  template: `
-    <!--    @let match = this.match();-->
-
-    <!--    @if (match) {-->
-    <!--      @if (match.status === 'notFound' && notFoundMatch()) {-->
-    <!--        <ng-container-->
-    <!--          [componentOutlet]="notFoundMatch()!.component"-->
-    <!--          [componentOutletInjector]="notFoundMatch()!.injector"-->
-    <!--        />-->
-    <!--      } @else if (-->
-    <!--        (match.status === 'redirected' || match.status === 'pending') &&-->
-    <!--        !matchLoadResource.value() &&-->
-    <!--        pendingMatch()-->
-    <!--      ) {-->
-    <!--        <ng-container [componentOutlet]="pendingMatch()!.component" />-->
-    <!--      } @else if (match.status === 'error' && errorMatch()) {-->
-    <!--        <ng-container-->
-    <!--          [componentOutlet]="errorMatch()!.component"-->
-    <!--          [componentOutletInjector]="errorMatch()!.injector"-->
-    <!--        />-->
-    <!--      } @else if (match.status === 'success' && successMatch()) {-->
-    <!--        <ng-container-->
-    <!--          [componentOutlet]="successMatch()!.component"-->
-    <!--          [componentOutletInjector]="successMatch()!.injector"-->
-    <!--          [componentOutletEnvironmentInjector]="-->
-    <!--            successMatch()!.environmentInjector-->
-    <!--          "-->
-    <!--        />-->
-    <!--      }-->
-    <!--    }-->
-  `,
-  changeDetection: ChangeDetectionStrategy.OnPush,
+  template: ``,
   hostDirectives: [OnRendered],
-  // imports: [ComponentOutlet, Key],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class RouteMatch {
   matchId = input.required<string>();
 
   private isDevMode = isDevMode();
-  private injector = inject(Injector);
-  private vcr = inject(ViewContainerRef);
-  private environmentInjector = inject(EnvironmentInjector);
   private router = injectRouter();
+  private vcr = inject(ViewContainerRef);
+  private injector = inject(Injector);
+  private environmentInjector = inject(EnvironmentInjector);
 
-  private resetKey = routerState({ select: (s) => s.loadedAt.toString() });
-  private routeId = routerState({
-    select: (s) =>
-      s.matches.find((d) => d.id === this.matchId())?.routeId as string,
-  });
-  private route = computed(() => this.router.routesById[this.routeId()]);
-  private pendingComponent = computed(
-    () =>
-      this.route().options.pendingComponent ||
-      this.router.options.defaultPendingComponent
-  );
-  private errorComponent = computed(
-    () =>
-      this.route().options.errorComponent ||
-      this.router.options.defaultErrorComponent
-  );
-  private onCatch = computed(
-    () => this.route().options.onCatch || this.router.options.defaultOnCatch
+  matchId$ = toObservable(this.matchId);
+  private resetKey$ = routerState$({ select: (s) => s.loadedAt.toString() });
+  private matches$ = routerState$({ select: (s) => s.matches });
+  private routeId$ = combineLatest([this.matchId$, this.matches$]).pipe(
+    map(
+      ([matchId, matches]) =>
+        matches.find((d) => d.id === matchId)?.routeId as string
+    ),
+    distinctUntilRefChanged()
   );
 
-  private matchState = routerState({
-    select: (s) => {
-      const matchIndex = s.matches.findIndex((d) => d.id === this.matchId());
-      const match = s.matches[matchIndex]!;
-
-      if (!match) return null;
-      const routeId = match.routeId as string;
-
-      return {
-        routeId,
-        match: routerCorePick(match, ['id', 'status', 'error']),
-      };
-    },
-  });
-
-  private matchRouteId = computed(() => {
-    const matchState = this.matchState();
-    if (!matchState) return null;
-    return matchState.routeId;
-  });
-  private matchRoute = computed(() => {
-    const matchRouteId = this.matchRouteId();
-    if (!matchRouteId) return null;
-    return this.router.routesById[matchRouteId]!;
-  });
-  protected match = computed(
-    () => {
-      const matchState = this.matchState();
-      if (!matchState) return null;
-      return matchState.match;
-    },
-    { equal: (a, b) => !!a && !!b && a.id === b.id && a.status === b.status }
+  private route$ = this.routeId$.pipe(
+    map((routeId) => this.router.routesById[routeId]),
+    distinctUntilRefChanged()
   );
-  protected matchLoadResource = resource({
-    request: this.match,
-    loader: ({ request }) => {
-      if (!request) return Promise.resolve() as any;
+  private pendingComponent$ = this.route$.pipe(
+    map(
+      (route) =>
+        route.options.pendingComponent ||
+        this.router.options.defaultPendingComponent
+    ),
+    distinctUntilRefChanged()
+  );
+  private errorComponent$ = this.route$.pipe(
+    map(
+      (route) =>
+        route.options.errorComponent ||
+        this.router.options.defaultErrorComponent
+    ),
+    distinctUntilRefChanged()
+  );
+  private onCatch$ = this.route$.pipe(
+    map((route) => route.options.onCatch || this.router.options.defaultOnCatch),
+    distinctUntilRefChanged()
+  );
 
-      const loadPromise = this.router.getMatch(request.id)?.loadPromise;
+  private matchIndex$ = combineLatest([this.matchId$, this.matches$]).pipe(
+    map(([matchId, matches]) => matches.findIndex((d) => d.id === matchId)),
+    distinctUntilRefChanged()
+  );
+  private matchState$ = combineLatest([this.matchIndex$, this.matches$]).pipe(
+    map(([matchIndex, matches]) => matches[matchIndex]),
+    filter((match) => !!match),
+    map((match) => ({
+      routeId: match.routeId as string,
+      match: pick(match, ['id', 'status', 'error']),
+    }))
+  );
+
+  private matchRoute$ = this.matchState$.pipe(
+    map(({ routeId }) => this.router.routesById[routeId]),
+    distinctUntilRefChanged()
+  );
+  private match$ = this.matchState$.pipe(
+    map(({ match }) => match),
+    distinctUntilChanged(
+      (a, b) => !!a && !!b && a.id === b.id && a.status === b.status
+    )
+  );
+  private matchLoad$ = this.match$.pipe(
+    withLatestFrom(this.matchRoute$),
+    switchMap(([match, matchRoute]) => {
+      const loadPromise = this.router.getMatch(match.id)?.loadPromise;
       if (!loadPromise) return Promise.resolve() as any;
 
-      if (request.status === 'pending') {
+      if (match.status === 'pending') {
         const pendingMinMs =
-          this.matchRoute()?.options.pendingMinMs ??
+          matchRoute.options.pendingMinMs ??
           this.router.options.defaultPendingMinMs;
-
         let minPendingPromise = this.router.getMatch(
-          request.id
+          match.id
         )?.minPendingPromise;
 
         if (pendingMinMs && !minPendingPromise) {
@@ -181,7 +176,7 @@ export class RouteMatch {
           if (!this.router.isServer) {
             minPendingPromise = createControlledPromise<void>();
             Promise.resolve().then(() => {
-              this.router.updateMatch(request.id, (prev) => ({
+              this.router.updateMatch(match.id, (prev) => ({
                 ...prev,
                 minPendingPromise,
               }));
@@ -190,7 +185,7 @@ export class RouteMatch {
             setTimeout(() => {
               minPendingPromise?.resolve();
               // We've handled the minPendingPromise, so we can delete it
-              this.router.updateMatch(request.id, (prev) => ({
+              this.router.updateMatch(match.id, (prev) => ({
                 ...prev,
                 minPendingPromise: undefined,
               }));
@@ -198,257 +193,196 @@ export class RouteMatch {
           }
         }
 
-        return (minPendingPromise?.then(() => loadPromise) || loadPromise).then(
-          () => request
-        );
+        return minPendingPromise?.then(() => loadPromise) || loadPromise;
       }
 
-      return loadPromise.then(() => request);
-    },
-  });
+      return loadPromise;
+    }),
+    distinctUntilRefChanged()
+  );
 
-  // protected pendingMatch = computed(() => {
-  //   const match = this.match();
-  //   if (!match || (match.status !== 'pending' && match.status !== 'redirected'))
-  //     return null;
-  //
-  //   const pendingComponent = this.pendingComponent()?.();
-  //   if (!pendingComponent) return null;
-  //
-  //   return { component: pendingComponent };
-  // });
-  //
-  // protected notFoundMatch = computed(() => {
-  //   const match = this.match();
-  //   if (!match || match.status !== 'notFound') return null;
-  //   invariant(isNotFound(match.error), 'Expected a notFound error');
-  //
-  //   const route = this.route();
-  //   let notFoundCmp: Type<any> | undefined = undefined;
-  //
-  //   if (!route.options.notFoundComponent) {
-  //     notFoundCmp = this.router.options.defaultNotFoundComponent?.();
-  //     if (!notFoundCmp) {
-  //       if (this.isDevMode) {
-  //         warning(
-  //           route.options.notFoundComponent,
-  //           `A notFoundError was encountered on the route with ID "${route.id}", but a notFoundComponent option was not configured, nor was a router level defaultNotFoundComponent configured. Consider configuring at least one of these to avoid TanStack Router's overly generic defaultNotFoundComponent (<p>Page not found</p>)`
-  //         );
-  //       }
-  //       notFoundCmp = DefaultNotFound;
-  //     }
-  //   } else {
-  //     notFoundCmp = route.options.notFoundComponent?.();
-  //   }
-  //
-  //   if (!notFoundCmp) return null;
-  //
-  //   const injector = this.router.getRouteInjector(
-  //     route.id + '-not-found',
-  //     this.injector,
-  //     [{ provide: NOT_FOUND_COMPONENT_CONTEXT, useValue: { data: undefined } }]
-  //   );
-  //
-  //   return { component: notFoundCmp, injector };
-  // });
-  //
-  // protected errorMatch = computed(() => {
-  //   const match = this.match();
-  //   if (!match || match.status !== 'error') return null;
-  //
-  //   const matchRoute = this.matchRoute();
-  //   if (!matchRoute) return null;
-  //
-  //   const errorComponent = this.errorComponent()?.() || DefaultError;
-  //   const injector = this.router.getRouteInjector(
-  //     matchRoute.id + '-error',
-  //     this.injector,
-  //     [
-  //       {
-  //         provide: ERROR_COMPONENT_CONTEXT,
-  //         useValue: {
-  //           error: match.error,
-  //           info: { componentStack: '' },
-  //           reset: () => {
-  //             void this.router.invalidate();
-  //           },
-  //         },
-  //       },
-  //     ]
-  //   );
-  //   return { component: errorComponent, injector };
-  // });
-  //
-  // protected successMatch = computed(() => {
-  //   const match = this.match();
-  //   if (!match || match.status !== 'success') return null;
-  //
-  //   const matchRoute = this.matchRoute();
-  //   if (!matchRoute) return null;
-  //
-  //   const successComponent = matchRoute.options.component?.() || Outlet;
-  //   const injector = this.router.getRouteInjector(matchRoute.id, this.injector);
-  //   const environmentInjector = this.router.getRouteEnvInjector(
-  //     matchRoute.id,
-  //     this.environmentInjector,
-  //     matchRoute.options.providers || [],
-  //     this.router
-  //   );
-  //
-  //   return { component: successComponent, injector, environmentInjector };
-  // });
+  private run$ = this.routeId$.pipe(
+    switchMap((routeId) => {
+      invariant(
+        routeId,
+        `Could not find routeId for matchId "${this.matchId()}". Please file an issue!`
+      );
+      return combineLatest([
+        this.match$,
+        this.matchRoute$,
+        this.resetKey$,
+      ]).pipe(
+        switchMap(([match, route]) => {
+          if (match.status === 'notFound') {
+            invariant(isNotFound(match.error), 'Expected a notFound error');
+            let notFoundCmp: Type<any> | undefined;
+            if (!route.options.notFoundComponent) {
+              notFoundCmp = this.router.options.defaultNotFoundComponent?.();
+              if (!notFoundCmp) {
+                if (this.isDevMode) {
+                  warning(
+                    route.options.notFoundComponent,
+                    `A notFoundError was encountered on the route with ID "${route.id}", but a notFoundComponent option was not configured, nor was a router level defaultNotFoundComponent configured. Consider configuring at least one of these to avoid TanStack Router's overly generic defaultNotFoundComponent (<p>Page not found</p>)`
+                  );
+                }
+                notFoundCmp = DefaultNotFound;
+              }
+            } else {
+              notFoundCmp = route.options.notFoundComponent?.();
+            }
+
+            if (!notFoundCmp) return of(null);
+
+            const injector = this.router.getRouteInjector(
+              route.id + '-not-found',
+              this.injector,
+              [{ provide: NOT_FOUND_COMPONENT_CONTEXT, useValue: {} }]
+            );
+            return of({
+              component: notFoundCmp,
+              injector,
+              environmentInjector: null,
+              clearView: true,
+            } as const);
+          }
+
+          if (match.status === 'redirected' || match.status === 'pending') {
+            if (match.status === 'redirected') {
+              invariant(isRedirect(match.error), 'Expected a redirect error');
+            }
+
+            return this.matchLoad$.pipe(
+              withLatestFrom(this.pendingComponent$),
+              switchMap(([, pendingComponent]) => {
+                const pendingCmp = pendingComponent?.();
+                if (!pendingCmp) return of(null);
+                return of({
+                  component: pendingCmp,
+                  injector: null,
+                  environmentInjector: null,
+                  clearView: true,
+                } as const);
+              })
+            );
+          }
+
+          if (match.status === 'error') {
+            return of(null).pipe(
+              withLatestFrom(this.errorComponent$),
+              switchMap(([, errorComponent]) => {
+                const errorCmp = errorComponent?.() || DefaultError;
+                const injector = this.router.getRouteInjector(
+                  route.id + '-error',
+                  this.injector,
+                  [
+                    {
+                      provide: ERROR_COMPONENT_CONTEXT,
+                      useValue: {
+                        error: match.error,
+                        info: { componentStack: '' },
+                        reset: () => void this.router.invalidate(),
+                      },
+                    },
+                  ]
+                );
+                return of({
+                  component: errorCmp,
+                  injector,
+                  environmentInjector: null,
+                  clearView: true,
+                } as const);
+              })
+            );
+          }
+
+          if (match.status === 'success') {
+            const successComponent = route.options.component?.() || Outlet;
+
+            if (this.cmp === successComponent) {
+              this.cmpRef?.changeDetectorRef.markForCheck();
+              return of({ clearView: false } as const);
+            }
+
+            this.cmpRef = undefined;
+            this.cmp = successComponent;
+            const injector = this.router.getRouteInjector(
+              route.id,
+              this.injector
+            );
+            const environmentInjector = this.router.getRouteEnvInjector(
+              route.id,
+              this.environmentInjector,
+              route.options.providers || [],
+              this.router
+            );
+
+            return of({
+              component: successComponent,
+              injector,
+              environmentInjector,
+              clearView: true,
+            } as const);
+          }
+
+          return of(null);
+        })
+      );
+    }),
+    catchError((error) =>
+      of(null).pipe(
+        withLatestFrom(this.onCatch$),
+        switchMap(([, onCatch]) => throwError(() => [error, onCatch]))
+      )
+    )
+  );
 
   private cmp?: Type<any>;
   private cmpRef?: ComponentRef<any>;
 
   constructor() {
-    effect(() => {
-      const routeId = this.routeId();
-      invariant(
-        routeId,
-        `Could not find routeId for matchId "${this.matchId()}". Please file an issue!`
-      );
+    let subscription: Subscription;
 
-      const match = this.match();
-      if (!match) return;
-
-      const [route] = [this.matchRoute(), this.resetKey()];
-      if (!route) return;
-
-      if (match.status === 'notFound') {
-        invariant(isNotFound(match.error), 'Expected a notFound error');
-
-        let notFoundCmp: Type<any> | undefined;
-
-        if (!route.options.notFoundComponent) {
-          notFoundCmp = this.router.options.defaultNotFoundComponent?.();
-          if (!notFoundCmp) {
-            if (this.isDevMode) {
-              warning(
-                route.options.notFoundComponent,
-                `A notFoundError was encountered on the route with ID "${route.id}", but a notFoundComponent option was not configured, nor was a router level defaultNotFoundComponent configured. Consider configuring at least one of these to avoid TanStack Router's overly generic defaultNotFoundComponent (<p>Page not found</p>)`
-              );
-            }
-            notFoundCmp = DefaultNotFound;
+    afterNextRender(() => {
+      subscription = this.run$.subscribe({
+        next: (runData) => {
+          if (!runData) return;
+          if (!runData.clearView) {
+            this.cmpRef?.changeDetectorRef.markForCheck();
+            return;
           }
-        } else {
-          notFoundCmp = route.options.notFoundComponent?.();
-        }
-
-        if (!notFoundCmp) return null;
-
-        const injector = this.router.getRouteInjector(
-          route.id + '-not-found',
-          this.injector,
-          [{ provide: NOT_FOUND_COMPONENT_CONTEXT, useValue: {} }]
-        );
-        this.vcr.clear();
-        const ref = this.vcr.createComponent(notFoundCmp, { injector });
-        ref.changeDetectorRef.markForCheck();
-        return;
-      }
-
-      if (match.status === 'redirected' || match.status === 'pending') {
-        if (match.status === 'redirected') {
-          invariant(isRedirect(match.error), 'Expected a redirect error');
-        }
-
-        if (!this.matchLoadResource.value()) {
-          const pendingComponent = this.pendingComponent()?.();
-          if (!pendingComponent) return;
+          const { component, injector, environmentInjector } = runData;
           this.vcr.clear();
-          const ref = this.vcr.createComponent(pendingComponent);
-          ref.changeDetectorRef.markForCheck();
-        }
 
-        return;
-      }
-
-      if (match.status === 'error') {
-        const errorComponent = this.errorComponent()?.() || DefaultError;
-        const injector = this.router.getRouteInjector(
-          route.id + '-error',
-          this.injector,
-          [
-            {
-              provide: ERROR_COMPONENT_CONTEXT,
-              useValue: {
-                error: match.error,
-                info: { componentStack: '' },
-                reset: () => {
-                  void this.router.invalidate();
-                },
-              },
-            },
-          ]
-        );
-
-        this.vcr.clear();
-        const ref = this.vcr.createComponent(errorComponent, { injector });
-        ref.changeDetectorRef.markForCheck();
-        return;
-      }
-
-      if (match.status === 'success') {
-        const successComponent = route.options.component?.() || Outlet;
-
-        if (this.cmp === successComponent) {
-          this.cmpRef?.changeDetectorRef.markForCheck();
-          return;
-        }
-
-        this.vcr.clear();
-        this.cmpRef = undefined;
-        const injector = this.router.getRouteInjector(route.id, this.injector);
-        const environmentInjector = this.router.getRouteEnvInjector(
-          route.id,
-          this.environmentInjector,
-          route.options.providers || [],
-          this.router
-        );
-        this.cmpRef = this.vcr.createComponent(successComponent, {
-          injector,
-          environmentInjector,
-        });
-        this.cmpRef.changeDetectorRef.markForCheck();
-        this.cmp = successComponent;
-      }
-
-      return;
+          this.cmpRef = this.vcr.createComponent(component, {
+            injector: injector || undefined,
+            environmentInjector: environmentInjector || undefined,
+          });
+          this.cmpRef.changeDetectorRef.markForCheck();
+        },
+        error: (error) => {
+          if (Array.isArray(error)) {
+            const [errorToThrow, onCatch] = error;
+            if (onCatch) onCatch(errorToThrow);
+            console.error(errorToThrow);
+            return;
+          }
+          console.error(error);
+        },
+      });
     });
 
     inject(DestroyRef).onDestroy(() => {
+      subscription?.unsubscribe();
       this.vcr.clear();
-      this.cmpRef = undefined;
       this.cmp = undefined;
+      this.cmpRef = undefined;
     });
   }
 }
 
 @Component({
   selector: 'outlet,Outlet',
-  template: `
-    <!--    @if (notFoundComponentData(); as notFoundComponentData) {-->
-    <!--      <ng-container-->
-    <!--        [componentOutlet]="notFoundComponentData.component"-->
-    <!--        [componentOutletInjector]="notFoundComponentData.injector"-->
-    <!--      />-->
-    <!--    } @else if (childMatchId()) {-->
-    <!--      @let childMatchId = this.childMatchId()!;-->
-    <!--      @if (childMatchId === rootRouteId) {-->
-    <!--        @if (!matchLoadResource.value()) {-->
-    <!--          @if (defaultPendingComponent) {-->
-    <!--            <ng-container [componentOutlet]="defaultPendingComponent" />-->
-    <!--          }-->
-    <!--        } @else {-->
-    <!--          <route-match [matchId]="childMatchId" />-->
-    <!--        }-->
-    <!--      } @else {-->
-    <!--        <route-match *key="resetKey()" [matchId]="childMatchId" />-->
-    <!--      }-->
-    <!--    }-->
-  `,
-  imports: [RouteMatch, ComponentOutlet, Key],
+  template: ``,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class Outlet {
@@ -461,19 +395,27 @@ export class Outlet {
   protected readonly defaultPendingComponent =
     this.router.options.defaultPendingComponent?.();
 
-  private routeId = routerState({
-    select: (s) =>
-      s.matches.find((d) => d.id === this.closestMatch.matchId())
-        ?.routeId as string,
-  });
-
-  private route = computed(() => this.router.routesById[this.routeId()]!);
-
-  private parentGlobalNotFound = routerState({
-    select: (s) => {
-      const closestMatchId = this.closestMatch.matchId();
-      const parentMatch = s.matches.find((d) => d.id === closestMatchId);
-
+  private matches$ = routerState$({ select: (s) => s.matches });
+  private routeId$ = combineLatest([
+    this.closestMatch.matchId$,
+    this.matches$,
+  ]).pipe(
+    map(
+      ([matchId, matches]) =>
+        matches.find((d) => d.id === matchId)?.routeId as string
+    ),
+    distinctUntilRefChanged()
+  );
+  private route$ = this.routeId$.pipe(
+    map((routeId) => this.router.routesById[routeId]),
+    distinctUntilRefChanged()
+  );
+  private parentGlobalNotFound$ = combineLatest([
+    this.matches$,
+    this.closestMatch.matchId$,
+  ]).pipe(
+    map(([matches, closestMatchId]) => {
+      const parentMatch = matches.find((d) => d.id === closestMatchId);
       if (!parentMatch) {
         warning(
           false,
@@ -481,131 +423,136 @@ export class Outlet {
         );
         return false;
       }
-
       return parentMatch.globalNotFound;
-    },
-  });
+    })
+  );
 
-  protected notFoundComponentData = computed(() => {
-    const parentGlobalNotFound = this.parentGlobalNotFound();
-    if (!parentGlobalNotFound) return null;
-
-    const route = this.route();
-    let notFoundCmp: Type<any> | undefined = undefined;
-
-    if (!route.options.notFoundComponent) {
-      notFoundCmp = this.router.options.defaultNotFoundComponent?.();
-      if (!notFoundCmp) {
-        if (this.isDevMode) {
-          warning(
-            route.options.notFoundComponent,
-            `A notFoundError was encountered on the route with ID "${route.id}", but a notFoundComponent option was not configured, nor was a router level defaultNotFoundComponent configured. Consider configuring at least one of these to avoid TanStack Router's overly generic defaultNotFoundComponent (<p>Page not found</p>)`
-          );
-        }
-        notFoundCmp = DefaultNotFound;
-      }
-    } else {
-      notFoundCmp = route.options.notFoundComponent?.();
-    }
-
-    if (!notFoundCmp) return null;
-
-    const injector = this.router.getRouteInjector(
-      route.id + '-not-found',
-      this.vcr.injector,
-      [{ provide: NOT_FOUND_COMPONENT_CONTEXT, useValue: { data: undefined } }]
-    );
-
-    return { component: notFoundCmp, injector };
-  });
-
-  protected childMatchId = routerState({
-    select: (s) => {
-      const matches = s.matches;
-      const index = matches.findIndex(
-        (d) => d.id === this.closestMatch.matchId()
-      );
+  private childMatchId$ = combineLatest([
+    this.matches$,
+    this.closestMatch.matchId$,
+  ]).pipe(
+    map(([matches, closestMatchId]) => {
+      const index = matches.findIndex((d) => d.id === closestMatchId);
       if (index === -1) return null;
       return matches[index + 1]?.id;
-    },
-  });
-
-  protected matchLoadResource = resource({
-    request: this.childMatchId,
-    loader: ({ request }) => {
-      if (!request) return Promise.resolve() as any;
-      const loadPromise = this.router.getMatch(request)?.loadPromise;
+    }),
+    distinctUntilRefChanged()
+  );
+  private matchLoad$ = this.childMatchId$.pipe(
+    switchMap((childMatchId) => {
+      if (!childMatchId) return Promise.resolve() as any;
+      const loadPromise = this.router.getMatch(childMatchId)?.loadPromise;
       if (!loadPromise) return Promise.resolve() as any;
-      return loadPromise.then(() => request);
-    },
-  });
+      return loadPromise;
+    })
+  );
 
   private renderedId?: string;
   private cmpRef?: ComponentRef<any>;
 
-  constructor() {
-    effect(() => {
-      const parentGlobalNotFound = this.parentGlobalNotFound();
+  private run$ = combineLatest([
+    this.parentGlobalNotFound$,
+    this.childMatchId$,
+  ]).pipe(
+    switchMap(([parentGlobalNotFound, childMatchId]) => {
       if (parentGlobalNotFound) {
-        this.vcr.clear();
+        return this.route$.pipe(
+          map((route) => {
+            let notFoundCmp: Type<any> | undefined = undefined;
 
-        const route = this.route();
-        let notFoundCmp: Type<any> | undefined = undefined;
-
-        if (!route.options.notFoundComponent) {
-          notFoundCmp = this.router.options.defaultNotFoundComponent?.();
-          if (!notFoundCmp) {
-            if (this.isDevMode) {
-              warning(
-                route.options.notFoundComponent,
-                `A notFoundError was encountered on the route with ID "${route.id}", but a notFoundComponent option was not configured, nor was a router level defaultNotFoundComponent configured. Consider configuring at least one of these to avoid TanStack Router's overly generic defaultNotFoundComponent (<p>Page not found</p>)`
-              );
+            if (!route.options.notFoundComponent) {
+              notFoundCmp = this.router.options.defaultNotFoundComponent?.();
+              if (!notFoundCmp) {
+                if (this.isDevMode) {
+                  warning(
+                    route.options.notFoundComponent,
+                    `A notFoundError was encountered on the route with ID "${route.id}", but a notFoundComponent option was not configured, nor was a router level defaultNotFoundComponent configured. Consider configuring at least one of these to avoid TanStack Router's overly generic defaultNotFoundComponent (<p>Page not found</p>)`
+                  );
+                }
+                notFoundCmp = DefaultNotFound;
+              }
+            } else {
+              notFoundCmp = route.options.notFoundComponent?.();
             }
-            notFoundCmp = DefaultNotFound;
-          }
-        } else {
-          notFoundCmp = route.options.notFoundComponent?.();
-        }
 
-        if (!notFoundCmp) return null;
+            if (!notFoundCmp) return null;
 
-        const injector = this.router.getRouteInjector(
-          route.id + '-not-found',
-          this.vcr.injector,
-          [{ provide: NOT_FOUND_COMPONENT_CONTEXT, useValue: {} }]
+            const injector = this.router.getRouteInjector(
+              route.id + '-not-found',
+              this.vcr.injector,
+              [{ provide: NOT_FOUND_COMPONENT_CONTEXT, useValue: {} }]
+            );
+            return {
+              component: notFoundCmp,
+              injector,
+              clearView: true,
+              childMatchId: null,
+            } as const;
+          })
         );
-        const ref = this.vcr.createComponent(notFoundCmp, { injector });
-        ref.changeDetectorRef.markForCheck();
-        return;
       }
 
-      const childMatchId = this.childMatchId();
-      if (!childMatchId) return;
+      if (!childMatchId) return of(null);
 
       if (this.renderedId === childMatchId) {
-        this.cmpRef?.changeDetectorRef.markForCheck();
-        return;
+        return of({ clearView: false } as const);
       }
 
-      this.vcr.clear();
       this.cmpRef = undefined;
 
-      if (childMatchId === rootRouteId && !this.matchLoadResource.value()) {
-        if (this.defaultPendingComponent) {
-          const ref = this.vcr.createComponent(this.defaultPendingComponent);
-          ref.changeDetectorRef.markForCheck();
-        }
-        return;
+      if (childMatchId === rootRouteId) {
+        return this.matchLoad$.pipe(
+          map(() => {
+            return {
+              component: this.defaultPendingComponent,
+              injector: null,
+              clearView: true,
+              childMatchId: null,
+            } as const;
+          })
+        );
       }
 
-      this.cmpRef = this.vcr.createComponent(RouteMatch);
-      this.cmpRef.setInput('matchId', childMatchId);
-      this.cmpRef.changeDetectorRef.markForCheck();
       this.renderedId = childMatchId;
-      return;
+      return of({
+        component: RouteMatch,
+        injector: null,
+        clearView: true,
+        childMatchId,
+      } as const);
+    }),
+    catchError((error) => throwError(() => error))
+  );
+
+  constructor() {
+    let subscription: Subscription;
+    afterNextRender(() => {
+      subscription = this.run$.subscribe({
+        next: (runData) => {
+          if (!runData) return;
+          if (!runData.clearView) {
+            this.cmpRef?.changeDetectorRef.markForCheck();
+            return;
+          }
+          const { component, injector, childMatchId } = runData;
+          this.vcr.clear();
+          if (!component) return;
+          this.cmpRef = this.vcr.createComponent(component, {
+            injector: injector || undefined,
+          });
+          if (childMatchId) {
+            this.cmpRef.setInput('matchId', childMatchId);
+          }
+          this.cmpRef.changeDetectorRef.markForCheck();
+        },
+        error: (error) => {
+          console.error(error);
+        },
+      });
     });
 
     inject(DestroyRef).onDestroy(() => {
+      subscription?.unsubscribe();
       this.vcr.clear();
       this.cmpRef = undefined;
       this.renderedId = undefined;

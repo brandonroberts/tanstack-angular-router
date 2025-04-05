@@ -223,33 +223,24 @@ export type {
   RouterHistory,
 } from '@tanstack/history';
 
-// export {
-//   FileRoute,
-//   createFileRoute,
-//   FileRouteLoader,
-//   LazyRoute,
-//   createLazyRoute,
-//   createLazyFileRoute,
-// } from './fileRoute'
-
 export { Link, linkOptions } from './link';
-
+export { MatchRoute, matchRoute, matchRoute$ } from './match-route';
+export type { MakeMatchRouteOptions, MatchRouteOptions } from './match-route';
 export {
-  MatchRoute,
   Matches,
   childMatches,
-  matchRoute,
+  childMatches$,
   matches,
+  matches$,
   parentMatches,
+  parentMatches$,
 } from './matches';
-
-export type { MakeMatchRouteOptions, MatchRouteOptions } from './matches';
 
 export { OnRendered, Outlet, RouteMatch } from './outlet';
 
-export { loaderData } from './loader-data';
-export { loaderDeps } from './loader-deps';
-export { match } from './match';
+export { loaderData, loaderData$ } from './loader-data';
+export { loaderDeps, loaderDeps$ } from './loader-deps';
+export { match, match$ } from './match';
 
 export { isRedirect, redirect } from '@tanstack/router-core';
 
@@ -291,13 +282,13 @@ export {
   lazyFn,
 } from '@tanstack/router-core';
 
-export { params } from './params';
-export { search } from './search';
+export { params, params$ } from './params';
+export { search, search$ } from './search';
 
-export { canGoBack } from './can-go-back';
-export { location } from './location';
-export { routeContext } from './route-context';
-export { routerState } from './router-state';
+export { canGoBack, canGoBack$ } from './can-go-back';
+export { location, location$ } from './location';
+export { routeContext, routeContext$ } from './route-context';
+export { routerState, routerState$ } from './router-state';
 
 export { isNotFound, notFound } from '@tanstack/router-core';
 export type { NotFoundError } from '@tanstack/router-core';

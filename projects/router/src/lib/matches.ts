@@ -1,242 +1,136 @@
 import {
+  afterNextRender,
   assertInInjectionContext,
-  ChangeDetectionStrategy,
-  Component,
   ComponentRef,
-  computed,
   DestroyRef,
   Directive,
-  effect,
   inject,
   Injector,
-  input,
-  resource,
   runInInjectionContext,
   Signal,
-  TemplateRef,
   ViewContainerRef,
 } from '@angular/core';
+import { toObservable, toSignal } from '@angular/core/rxjs-interop';
 import {
   AnyRouter,
-  DeepPartial,
-  MakeOptionalPathParams,
-  MakeOptionalSearchParams,
   MakeRouteMatchUnion,
-  MaskOptions,
   RegisteredRouter,
   RouterState,
-  MatchRouteOptions as TanstackMatchRouteOptions,
-  ToSubOptionsProps,
 } from '@tanstack/router-core';
+import {
+  combineLatest,
+  map,
+  Observable,
+  of,
+  Subscription,
+  switchMap,
+} from 'rxjs';
 import { DefaultError } from './default-error';
+import { distinctUntilRefChanged } from './distinct-until-ref-changed';
 import { RouteMatch } from './outlet';
 import { ERROR_COMPONENT_CONTEXT } from './route';
 import { injectRouter } from './router';
-import { routerState } from './router-state';
+import { routerState$ } from './router-state';
 import { Transitioner } from './transitioner';
 
-@Component({
-  selector: 'matches,Matches',
-  template: `
-    <!--    <ng-template try [tryCatch]="catchTmpl">-->
-    <!--      @if (rootMatchId(); as rootMatchId) {-->
-    <!--        @if (!matchLoadResource.value()) {-->
-    <!--          @if (defaultPendingComponent) {-->
-    <!--            <ng-container [ngComponentOutlet]="defaultPendingComponent" />-->
-    <!--          }-->
-    <!--        } @else {-->
-    <!--          <route-match [matchId]="rootMatchId" />-->
-    <!--        }-->
-    <!--      }-->
-    <!--    </ng-template>-->
-    <!--    <ng-template #catchTmpl let-error="error">-->
-    <!--      <ng-container-->
-    <!--        [ngComponentOutlet]="defaultErrorComponent"-->
-    <!--        [ngComponentOutletInjector]="getErrorComponentInjector(error)"-->
-    <!--      />-->
-    <!--    </ng-template>-->
-  `,
-  changeDetection: ChangeDetectionStrategy.OnPush,
-  hostDirectives: [Transitioner],
-  // imports: [NgComponentOutlet, RouteMatch, TryCatch],
-})
+@Directive({ hostDirectives: [Transitioner] })
 export class Matches {
   private router = injectRouter();
   private injector = inject(Injector);
   private vcr = inject(ViewContainerRef);
 
-  private resetKey = routerState({ select: (s) => s.loadedAt.toString() });
-  private rootMatchId = routerState({ select: (s) => s.matches[0]?.id });
-  private matchLoadResource = resource({
-    request: this.rootMatchId,
-    loader: ({ request }) => {
-      if (!request) return Promise.resolve() as any;
-      const loadPromise = this.router.getMatch(request)?.loadPromise;
-      if (!loadPromise) return Promise.resolve() as any;
-      return loadPromise.then(() => request);
-    },
-  });
   private defaultPendingComponent =
     this.router.options.defaultPendingComponent?.();
 
+  private resetKey$ = routerState$({ select: (s) => s.loadedAt.toString() });
+  private rootMatchId$ = routerState$({ select: (s) => s.matches[0]?.id });
+
+  private matchLoad$ = this.rootMatchId$.pipe(
+    switchMap((rootMatchId) => {
+      if (!rootMatchId) return of({ pending: false });
+      const loadPromise = this.router.getMatch(rootMatchId)?.loadPromise;
+      if (!loadPromise) return of({ pending: false });
+      return of({ pending: true }).pipe(
+        switchMap(() => loadPromise.then(() => ({ pending: false })))
+      );
+    })
+  );
+
   private cmpRef?: ComponentRef<any>;
 
-  constructor() {
-    effect(() => {
-      const loadResourceValue = this.matchLoadResource.value();
-      if (!loadResourceValue) {
+  private run$ = this.matchLoad$.pipe(
+    switchMap(({ pending }) => {
+      if (pending) {
         if (this.defaultPendingComponent) {
-          this.vcr.clear();
-          const ref = this.vcr.createComponent(this.defaultPendingComponent);
-          ref.changeDetectorRef.markForCheck();
+          return of({
+            component: this.defaultPendingComponent,
+            clearView: true,
+            matchId: null,
+          } as const);
         }
-        return;
+        return of(null);
       }
 
-      const [matchId] = [this.rootMatchId(), this.resetKey()];
-      if (!matchId) return;
+      return combineLatest([this.rootMatchId$, this.resetKey$]).pipe(
+        map(([matchId]) => {
+          if (!matchId) return null;
+          if (this.cmpRef) return { clearView: false } as const;
+          return {
+            component: RouteMatch,
+            matchId,
+            clearView: true,
+          } as const;
+        })
+      );
+    })
+  );
 
-      if (this.cmpRef) {
-        this.cmpRef.changeDetectorRef.markForCheck();
-        return;
-      }
-
-      try {
-        this.cmpRef = this.vcr.createComponent(RouteMatch);
-        this.cmpRef.setInput('matchId', matchId);
-        this.cmpRef.changeDetectorRef.markForCheck();
-      } catch (err) {
-        console.error(err);
-        const injector = Injector.create({
-          providers: [
-            {
-              provide: ERROR_COMPONENT_CONTEXT,
-              useValue: {
-                error: err,
-                info: { componentStack: '' },
-                reset: () => {
-                  void this.router.invalidate();
+  constructor() {
+    let subscription: Subscription;
+    afterNextRender(() => {
+      subscription = this.run$.subscribe({
+        next: (runData) => {
+          if (!runData) return;
+          if (!runData.clearView) {
+            this.cmpRef?.changeDetectorRef.markForCheck();
+            return;
+          }
+          const { component, matchId } = runData;
+          this.vcr.clear();
+          this.cmpRef = this.vcr.createComponent(component);
+          if (matchId) {
+            this.cmpRef.setInput('matchId', matchId);
+          }
+          this.cmpRef.changeDetectorRef.markForCheck();
+        },
+        error: (error) => {
+          console.error(error);
+          const injector = Injector.create({
+            providers: [
+              {
+                provide: ERROR_COMPONENT_CONTEXT,
+                useValue: {
+                  error: error,
+                  info: { componentStack: '' },
+                  reset: () => void this.router.invalidate(),
                 },
               },
-            },
-          ],
-          parent: this.injector,
-        });
-        const ref = this.vcr.createComponent(DefaultError, { injector });
-        ref.changeDetectorRef.markForCheck();
-        this.cmpRef = undefined;
-      }
+            ],
+            parent: this.injector,
+          });
+          this.vcr.clear();
+          const ref = this.vcr.createComponent(DefaultError, { injector });
+          ref.changeDetectorRef.markForCheck();
+          this.cmpRef = undefined;
+        },
+      });
     });
 
     inject(DestroyRef).onDestroy(() => {
+      subscription?.unsubscribe();
       this.vcr.clear();
       this.cmpRef = undefined;
     });
-  }
-}
-
-export type MatchRouteOptions<
-  TRouter extends AnyRouter = RegisteredRouter,
-  TFrom extends string = string,
-  TTo extends string | undefined = undefined,
-  TMaskFrom extends string = TFrom,
-  TMaskTo extends string = '',
-> = ToSubOptionsProps<TRouter, TFrom, TTo> &
-  DeepPartial<MakeOptionalSearchParams<TRouter, TFrom, TTo>> &
-  DeepPartial<MakeOptionalPathParams<TRouter, TFrom, TTo>> &
-  MaskOptions<TRouter, TMaskFrom, TMaskTo> &
-  TanstackMatchRouteOptions & { injector?: Injector };
-
-export function matchRoute<TRouter extends AnyRouter = RegisteredRouter>({
-  injector,
-}: { injector?: Injector } = {}) {
-  !injector && assertInInjectionContext(matchRoute);
-
-  if (!injector) {
-    injector = inject(Injector);
-  }
-
-  return runInInjectionContext(injector, () => {
-    const router = injectRouter();
-    const status = routerState({ select: (s) => s.status });
-
-    return <
-      const TFrom extends string = string,
-      const TTo extends string | undefined = undefined,
-      const TMaskFrom extends string = TFrom,
-      const TMaskTo extends string = '',
-    >(
-      opts: MatchRouteOptions<TRouter, TFrom, TTo, TMaskFrom, TMaskTo>
-    ) => {
-      const { pending, caseSensitive, fuzzy, includeSearch, ...rest } = opts;
-      return computed(() => {
-        // track status
-        status();
-        return router.matchRoute(rest as any, {
-          pending,
-          caseSensitive,
-          fuzzy,
-          includeSearch,
-        });
-      });
-    };
-  });
-}
-
-export type MakeMatchRouteOptions<
-  TRouter extends AnyRouter = RegisteredRouter,
-  TFrom extends string = string,
-  TTo extends string | undefined = undefined,
-  TMaskFrom extends string = TFrom,
-  TMaskTo extends string = '',
-> = MatchRouteOptions<TRouter, TFrom, TTo, TMaskFrom, TMaskTo>;
-
-@Directive({ selector: 'ng-template[matchRoute]' })
-export class MatchRoute<
-  TRouter extends AnyRouter = RegisteredRouter,
-  const TFrom extends string = string,
-  const TTo extends string | undefined = undefined,
-  const TMaskFrom extends string = TFrom,
-  const TMaskTo extends string = '',
-> {
-  matchRoute =
-    input.required<
-      MakeMatchRouteOptions<TRouter, TFrom, TTo, TMaskFrom, TMaskTo>
-    >();
-
-  private status = routerState({ select: (s) => s.status });
-  private matchRouteFn = matchRoute();
-  private params = computed(
-    () => this.matchRouteFn(this.matchRoute() as any)() as boolean
-  );
-
-  private vcr = inject(ViewContainerRef);
-  private templateRef = inject(TemplateRef);
-
-  constructor() {
-    effect((onCleanup) => {
-      const [params] = [this.params(), this.status()];
-      if (!params) return;
-
-      const ref = this.vcr.createEmbeddedView(this.templateRef, {
-        match: params,
-      });
-      ref.markForCheck();
-      onCleanup(() => ref.destroy());
-    });
-  }
-
-  static ngTemplateContextGuard<
-    TRouter extends AnyRouter = RegisteredRouter,
-    const TFrom extends string = string,
-    const TTo extends string | undefined = undefined,
-    const TMaskFrom extends string = TFrom,
-    const TMaskTo extends string = '',
-  >(
-    _: MatchRoute<TRouter, TFrom, TTo, TMaskFrom, TMaskTo>,
-    ctx: unknown
-  ): ctx is { match: boolean } {
-    return true;
   }
 }
 
@@ -249,6 +143,34 @@ export type MatchesResult<
   TRouter extends AnyRouter,
   TSelected,
 > = unknown extends TSelected ? Array<MakeRouteMatchUnion<TRouter>> : TSelected;
+
+export function matches$<
+  TRouter extends AnyRouter = RegisteredRouter,
+  TSelected = unknown,
+>({
+  injector,
+  ...opts
+}: MatchesBaseOptions<TRouter, TSelected> = {}): Observable<
+  MatchesResult<TRouter, TSelected>
+> {
+  !injector && assertInInjectionContext(matches$);
+
+  if (!injector) {
+    injector = inject(Injector);
+  }
+
+  return runInInjectionContext(injector, () => {
+    return routerState$({
+      injector,
+      select: (state: RouterState<TRouter['routeTree']>) => {
+        const matches = state.matches;
+        return opts.select
+          ? opts.select(matches as Array<MakeRouteMatchUnion<TRouter>>)
+          : matches;
+      },
+    }) as Observable<MatchesResult<TRouter, TSelected>>;
+  });
+}
 
 export function matches<
   TRouter extends AnyRouter = RegisteredRouter,
@@ -263,15 +185,44 @@ export function matches<
   }
 
   return runInInjectionContext(injector, () => {
-    return routerState({
-      injector,
-      select: (state: RouterState<TRouter['routeTree']>) => {
-        const matches = state.matches;
+    return toSignal(matches$({ injector, ...opts })) as Signal<
+      MatchesResult<TRouter, TSelected>
+    >;
+  });
+}
+
+export function parentMatches$<
+  TRouter extends AnyRouter = RegisteredRouter,
+  TSelected = unknown,
+>({
+  injector,
+  ...opts
+}: MatchesBaseOptions<TRouter, TSelected> = {}): Observable<
+  MatchesResult<TRouter, TSelected>
+> {
+  !injector && assertInInjectionContext(parentMatches$);
+
+  if (!injector) {
+    injector = inject(Injector);
+  }
+
+  return runInInjectionContext(injector, () => {
+    const closestMatch = inject(RouteMatch);
+    return combineLatest([
+      routerState$({ injector, select: (s) => s.matches }),
+      toObservable(closestMatch.matchId),
+    ]).pipe(
+      map(([matches, matchId]) => {
+        const sliced = matches.slice(
+          0,
+          matches.findIndex((d) => d.id === matchId)
+        );
         return opts.select
-          ? opts.select(matches as Array<MakeRouteMatchUnion<TRouter>>)
-          : matches;
-      },
-    }) as Signal<MatchesResult<TRouter, TSelected>>;
+          ? opts.select(sliced as Array<MakeRouteMatchUnion<TRouter>>)
+          : sliced;
+      }),
+      distinctUntilRefChanged() as any
+    ) as Observable<MatchesResult<TRouter, TSelected>>;
   });
 }
 
@@ -288,19 +239,42 @@ export function parentMatches<
   }
 
   return runInInjectionContext(injector, () => {
+    return toSignal(parentMatches$({ injector, ...opts })) as Signal<
+      MatchesResult<TRouter, TSelected>
+    >;
+  });
+}
+export function childMatches$<
+  TRouter extends AnyRouter = RegisteredRouter,
+  TSelected = unknown,
+>({
+  injector,
+  ...opts
+}: MatchesBaseOptions<TRouter, TSelected> = {}): Observable<
+  MatchesResult<TRouter, TSelected>
+> {
+  !injector && assertInInjectionContext(childMatches$);
+
+  if (!injector) {
+    injector = inject(Injector);
+  }
+
+  return runInInjectionContext(injector, () => {
     const closestMatch = inject(RouteMatch);
-    return matches({
-      injector,
-      select: (matches: Array<MakeRouteMatchUnion<TRouter>>) => {
-        matches = matches.slice(
-          0,
-          matches.findIndex((d) => d.id === closestMatch.matchId())
+    return combineLatest([
+      routerState$({ injector, select: (s) => s.matches }),
+      toObservable(closestMatch.matchId),
+    ]).pipe(
+      map(([matches, matchId]) => {
+        const sliced = matches.slice(
+          matches.findIndex((d) => d.id === matchId) + 1
         );
         return opts.select
-          ? opts.select(matches as Array<MakeRouteMatchUnion<TRouter>>)
-          : matches;
-      },
-    }) as Signal<MatchesResult<TRouter, TSelected>>;
+          ? opts.select(sliced as Array<MakeRouteMatchUnion<TRouter>>)
+          : sliced;
+      }),
+      distinctUntilRefChanged() as any
+    ) as Observable<MatchesResult<TRouter, TSelected>>;
   });
 }
 
@@ -317,17 +291,8 @@ export function childMatches<
   }
 
   return runInInjectionContext(injector, () => {
-    const closestMatch = inject(RouteMatch);
-    return matches({
-      injector,
-      select: (matches: Array<MakeRouteMatchUnion<TRouter>>) => {
-        matches = matches.slice(
-          matches.findIndex((d) => d.id === closestMatch.matchId()) + 1
-        );
-        return opts.select
-          ? opts.select(matches as Array<MakeRouteMatchUnion<TRouter>>)
-          : matches;
-      },
-    }) as Signal<MatchesResult<TRouter, TSelected>>;
+    return toSignal(childMatches$({ injector, ...opts })) as Signal<
+      MatchesResult<TRouter, TSelected>
+    >;
   });
 }

@@ -7,29 +7,33 @@ import {
 import {
   AnyContext,
   AnyRoute,
+  AnyRouter,
   BaseRootRoute,
   BaseRoute,
   BaseRouteApi,
+  ConstrainLiteral,
+  ErrorComponentProps,
+  NotFoundRouteProps,
+  RegisteredRouter,
   ResolveFullPath,
   ResolveId,
   ResolveParams,
   RootRouteId,
   RootRouteOptions,
   RouteConstraints,
+  RouteIds,
   RouteOptions,
-  type AnyRouter,
-  type ConstrainLiteral,
-  type ErrorComponentProps,
-  type NotFoundRouteProps,
-  type RegisteredRouter,
-  type RouteIds,
 } from '@tanstack/router-core';
-import { loaderData, LoaderDataRoute } from './loader-data';
-import { loaderDeps, LoaderDepsRoute } from './loader-deps';
-import { match, MatchRoute } from './match';
-import { params, ParamsRoute } from './params';
-import { routeContext, RouteContextRoute } from './route-context';
-import { search, SearchRoute } from './search';
+import { loaderData, loaderData$, LoaderDataRoute } from './loader-data';
+import { loaderDeps, loaderDeps$, LoaderDepsRoute } from './loader-deps';
+import { match, match$, MatchRoute } from './match';
+import { params, params$, ParamsRoute } from './params';
+import {
+  routeContext,
+  routeContext$,
+  RouteContextRoute,
+} from './route-context';
+import { search, search$, SearchRoute } from './search';
 
 declare module '@tanstack/router-core' {
   export interface UpdatableRouteOptionsExtensions {
@@ -44,12 +48,18 @@ declare module '@tanstack/router-core' {
     TId extends string,
     TFullPath extends string,
   > {
-    match: MatchRoute<TId>;
-    routeContext: RouteContextRoute<TId>;
-    search: SearchRoute<TId>;
-    params: ParamsRoute<TId>;
-    loaderDeps: LoaderDepsRoute<TId>;
-    loaderData: LoaderDataRoute<TId>;
+    match$: MatchRoute<true, TId>;
+    match: MatchRoute<false, TId>;
+    routeContext$: RouteContextRoute<true, TId>;
+    routeContext: RouteContextRoute<false, TId>;
+    search$: SearchRoute<true, TId>;
+    search: SearchRoute<false, TId>;
+    params$: ParamsRoute<true, TId>;
+    params: ParamsRoute<false, TId>;
+    loaderDeps$: LoaderDepsRoute<true, TId>;
+    loaderDeps: LoaderDepsRoute<false, TId>;
+    loaderData$: LoaderDataRoute<true, TId>;
+    loaderData: LoaderDataRoute<false, TId>;
   }
 }
 
@@ -80,29 +90,35 @@ export class RouteApi<
     super({ id });
   }
 
-  match: MatchRoute<TId> = (opts) => {
-    return match({ ...opts, from: this.id } as any) as any;
-  };
+  match$: MatchRoute<true, TId> = (opts) =>
+    match$({ ...opts, from: this.id } as any) as any;
+  match: MatchRoute<false, TId> = (opts) =>
+    match({ ...opts, from: this.id } as any) as any;
 
-  routeContext: RouteContextRoute<TId> = (opts) => {
-    return routeContext({ ...opts, from: this.id } as any);
-  };
+  routeContext$: RouteContextRoute<true, TId> = (opts) =>
+    routeContext$({ ...opts, from: this.id } as any);
+  routeContext: RouteContextRoute<false, TId> = (opts) =>
+    routeContext({ ...opts, from: this.id } as any);
 
-  search: SearchRoute<TId> = (opts) => {
-    return search({ ...opts, from: this.id } as any) as any;
-  };
+  search$: SearchRoute<true, TId> = (opts) =>
+    search$({ ...opts, from: this.id } as any) as any;
+  search: SearchRoute<false, TId> = (opts) =>
+    search({ ...opts, from: this.id } as any) as any;
 
-  params: ParamsRoute<TId> = (opts) => {
-    return params({ ...opts, from: this.id } as any) as any;
-  };
+  params$: ParamsRoute<true, TId> = (opts) =>
+    params$({ ...opts, from: this.id } as any) as any;
+  params: ParamsRoute<false, TId> = (opts) =>
+    params({ ...opts, from: this.id } as any) as any;
 
-  loaderDeps: LoaderDepsRoute<TId> = (opts) => {
-    return loaderData({ ...opts, from: this.id, strict: false } as any);
-  };
+  loaderDeps$: LoaderDepsRoute<true, TId> = (opts) =>
+    loaderDeps$({ ...opts, from: this.id } as any);
+  loaderDeps: LoaderDepsRoute<false, TId> = (opts) =>
+    loaderDeps({ ...opts, from: this.id, strict: false } as any);
 
-  loaderData: LoaderDataRoute<TId> = (opts) => {
-    return loaderDeps({ ...opts, from: this.id, strict: false } as any);
-  };
+  loaderData$: LoaderDataRoute<true, TId> = (opts) =>
+    loaderData$({ ...opts, from: this.id } as any);
+  loaderData: LoaderDataRoute<false, TId> = (opts) =>
+    loaderData({ ...opts, from: this.id, strict: false } as any);
 }
 
 export class Route<
@@ -165,33 +181,35 @@ export class Route<
     super(options);
   }
 
-  match: MatchRoute<TId> = (opts) => {
-    return match({ ...opts, from: this.id } as any) as any;
-  };
+  match$: MatchRoute<true, TId> = (opts) =>
+    match$({ ...opts, from: this.id } as any) as any;
+  match: MatchRoute<false, TId> = (opts) =>
+    match({ ...opts, from: this.id } as any) as any;
 
-  routeContext: RouteContextRoute<TId> = (opts?) => {
-    return match({
-      ...opts,
-      from: this.id,
-      select: (d) => (opts?.select ? opts.select(d.context) : d.context),
-    }) as any;
-  };
+  routeContext$: RouteContextRoute<true, TId> = (opts) =>
+    routeContext$({ ...opts, from: this.id } as any);
+  routeContext: RouteContextRoute<false, TId> = (opts) =>
+    routeContext({ ...opts, from: this.id } as any);
 
-  search: SearchRoute<TId> = (opts) => {
-    return search({ ...opts, from: this.id } as any) as any;
-  };
+  search$: SearchRoute<true, TId> = (opts) =>
+    search$({ ...opts, from: this.id } as any) as any;
+  search: SearchRoute<false, TId> = (opts) =>
+    search({ ...opts, from: this.id } as any) as any;
 
-  params: ParamsRoute<TId> = (opts) => {
-    return params({ ...opts, from: this.id } as any) as any;
-  };
+  params$: ParamsRoute<true, TId> = (opts) =>
+    params$({ ...opts, from: this.id } as any) as any;
+  params: ParamsRoute<false, TId> = (opts) =>
+    params({ ...opts, from: this.id } as any) as any;
 
-  loaderDeps: LoaderDepsRoute<TId> = (opts) => {
-    return loaderDeps({ ...opts, from: this.id } as any);
-  };
+  loaderDeps$: LoaderDepsRoute<true, TId> = (opts) =>
+    loaderDeps$({ ...opts, from: this.id } as any);
+  loaderDeps: LoaderDepsRoute<false, TId> = (opts) =>
+    loaderDeps({ ...opts, from: this.id } as any);
 
-  loaderData: LoaderDataRoute<TId> = (opts) => {
-    return loaderData({ ...opts, from: this.id } as any);
-  };
+  loaderData$: LoaderDataRoute<true, TId> = (opts) =>
+    loaderData$({ ...opts, from: this.id } as any);
+  loaderData: LoaderDataRoute<false, TId> = (opts) =>
+    loaderData({ ...opts, from: this.id } as any);
 }
 
 export function createRoute<
@@ -340,33 +358,35 @@ export class RootRoute<
     super(options);
   }
 
-  match: MatchRoute<RootRouteId> = (opts) => {
-    return match({ ...opts, from: this.id } as any) as any;
-  };
+  match$: MatchRoute<true, RootRouteId> = (opts) =>
+    match$({ ...opts, from: this.id } as any) as any;
+  match: MatchRoute<false, RootRouteId> = (opts) =>
+    match({ ...opts, from: this.id } as any) as any;
 
-  routeContext: RouteContextRoute<RootRouteId> = (opts) => {
-    return match({
-      ...opts,
-      from: this.id,
-      select: (d) => (opts?.select ? opts.select(d.context) : d.context),
-    }) as any;
-  };
+  routeContext$: RouteContextRoute<true, RootRouteId> = (opts) =>
+    routeContext$({ ...opts, from: this.id } as any);
+  routeContext: RouteContextRoute<false, RootRouteId> = (opts) =>
+    routeContext({ ...opts, from: this.id } as any);
 
-  search: SearchRoute<RootRouteId> = (opts) => {
-    return search({ ...opts, from: this.id } as any) as any;
-  };
+  search$: SearchRoute<true, RootRouteId> = (opts) =>
+    search$({ ...opts, from: this.id } as any) as any;
+  search: SearchRoute<false, RootRouteId> = (opts) =>
+    search({ ...opts, from: this.id } as any) as any;
 
-  params: ParamsRoute<RootRouteId> = (opts) => {
-    return params({ ...opts, from: this.id } as any) as any;
-  };
+  params$: ParamsRoute<true, RootRouteId> = (opts) =>
+    params$({ ...opts, from: this.id } as any) as any;
+  params: ParamsRoute<false, RootRouteId> = (opts) =>
+    params({ ...opts, from: this.id } as any) as any;
 
-  loaderDeps: LoaderDepsRoute<RootRouteId> = (opts) => {
-    return loaderDeps({ ...opts, from: this.id } as any);
-  };
+  loaderDeps$: LoaderDepsRoute<true, RootRouteId> = (opts) =>
+    loaderDeps$({ ...opts, from: this.id } as any);
+  loaderDeps: LoaderDepsRoute<false, RootRouteId> = (opts) =>
+    loaderDeps({ ...opts, from: this.id } as any);
 
-  loaderData: LoaderDataRoute<RootRouteId> = (opts) => {
-    return loaderData({ ...opts, from: this.id } as any);
-  };
+  loaderData$: LoaderDataRoute<true, RootRouteId> = (opts) =>
+    loaderData$({ ...opts, from: this.id } as any);
+  loaderData: LoaderDataRoute<false, RootRouteId> = (opts) =>
+    loaderData({ ...opts, from: this.id } as any);
 }
 
 export function createRootRoute<

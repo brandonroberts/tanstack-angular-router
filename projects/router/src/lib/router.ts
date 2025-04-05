@@ -1,25 +1,25 @@
 import {
+  ApplicationRef,
   createEnvironmentInjector,
   EnvironmentInjector,
   inject,
   InjectionToken,
   Injector,
-  Provider,
-  Signal,
+  type Provider,
 } from '@angular/core';
-import { injectStore } from '@tanstack/angular-store';
-import { type HistoryLocation, type RouterHistory } from '@tanstack/history';
+import type { HistoryLocation, RouterHistory } from '@tanstack/history';
 import {
   type AnyRoute,
-  AnyRouter,
-  CreateRouterFn,
+  type AnyRouter,
+  type CreateRouterFn,
   rootRouteId,
-  RouterConstructorOptions,
+  type RouterConstructorOptions,
   RouterCore,
-  RouterState,
+  type RouterState,
   type TrailingSlashOption,
 } from '@tanstack/router-core';
-import { type RouteComponent } from './route';
+import { BehaviorSubject, type Observable } from 'rxjs';
+import type { RouteComponent } from './route';
 
 declare module '@tanstack/history' {
   interface HistoryState {
@@ -72,9 +72,9 @@ declare module '@tanstack/router-core' {
 }
 
 export const ROUTER = new InjectionToken<NgRouter<AnyRoute>>('ROUTER');
-export const ROUTER_STATE = new InjectionToken<Signal<RouterState<AnyRoute>>>(
-  'ROUTER_STATE'
-);
+export const ROUTER_STATE = new InjectionToken<
+  Observable<RouterState<AnyRoute>>
+>('ROUTER_STATE');
 
 export function injectRouter() {
   return inject(ROUTER);
@@ -89,7 +89,21 @@ export function provideRouter(router: AnyRouter) {
     { provide: ROUTER, useValue: router },
     {
       provide: ROUTER_STATE,
-      useFactory: () => injectStore(router.__store),
+      useFactory: () => {
+        const state = new BehaviorSubject(router.state);
+        const appRef = inject(ApplicationRef);
+
+        const unsub = router.__store.subscribe(({ currentVal }) => {
+          state.next(currentVal);
+        });
+
+        appRef.onDestroy(() => {
+          state.complete();
+          unsub();
+        });
+
+        return state.asObservable();
+      },
     },
   ];
 }

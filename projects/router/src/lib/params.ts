@@ -5,6 +5,7 @@ import {
   runInInjectionContext,
   Signal,
 } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
 import {
   AnyRouter,
   RegisteredRouter,
@@ -14,7 +15,8 @@ import {
   ThrowOrOptional,
   UseParamsResult,
 } from '@tanstack/router-core';
-import { match } from './match';
+import { Observable } from 'rxjs';
+import { match$ } from './match';
 
 export interface ParamsBaseOptions<
   TRouter extends AnyRouter,
@@ -37,7 +39,7 @@ export type ParamsOptions<
 > = StrictOrFrom<TRouter, TFrom, TStrict> &
   ParamsBaseOptions<TRouter, TFrom, TStrict, TThrow, TSelected>;
 
-export type ParamsRoute<out TFrom> = <
+export type ParamsRoute<TObservable extends boolean, out TFrom> = <
   TRouter extends AnyRouter = RegisteredRouter,
   TSelected = unknown,
 >(
@@ -48,7 +50,45 @@ export type ParamsRoute<out TFrom> = <
     /* TThrow */ true,
     TSelected
   >
-) => Signal<UseParamsResult<TRouter, TFrom, true, TSelected>>;
+) => TObservable extends true
+  ? Observable<UseParamsResult<TRouter, TFrom, true, TSelected>>
+  : Signal<UseParamsResult<TRouter, TFrom, true, TSelected>>;
+
+export function params$<
+  TRouter extends AnyRouter = RegisteredRouter,
+  const TFrom extends string | undefined = undefined,
+  TStrict extends boolean = true,
+  TThrow extends boolean = true,
+  TSelected = unknown,
+>({
+  injector,
+  ...opts
+}: ParamsOptions<
+  TRouter,
+  TFrom,
+  TStrict,
+  ThrowConstraint<TStrict, TThrow>,
+  TSelected
+>): Observable<
+  ThrowOrOptional<UseParamsResult<TRouter, TFrom, TStrict, TSelected>, TThrow>
+> {
+  !injector && assertInInjectionContext(params);
+
+  if (!injector) {
+    injector = inject(Injector);
+  }
+
+  return runInInjectionContext(injector, () => {
+    return match$({
+      from: opts.from!,
+      strict: opts.strict,
+      shouldThrow: opts.shouldThrow,
+      select: (match) => {
+        return opts.select ? opts.select(match.params) : match.params;
+      },
+    }) as any;
+  });
+}
 
 export function params<
   TRouter extends AnyRouter = RegisteredRouter,
@@ -75,13 +115,6 @@ export function params<
   }
 
   return runInInjectionContext(injector, () => {
-    return match({
-      from: opts.from!,
-      strict: opts.strict,
-      shouldThrow: opts.shouldThrow,
-      select: (match) => {
-        return opts.select ? opts.select(match.params) : match.params;
-      },
-    }) as any;
+    return toSignal(params$({ injector, ...opts } as any)) as any;
   });
 }

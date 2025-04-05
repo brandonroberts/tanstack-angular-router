@@ -16,13 +16,17 @@ import {
   UpdatableRouteOptions,
 } from '@tanstack/router-core';
 import warning from 'tiny-warning';
-import { loaderData, LoaderDataRoute } from './loader-data';
-import { loaderDeps, LoaderDepsRoute } from './loader-deps';
-import { match, MatchRoute } from './match';
-import { params, ParamsRoute } from './params';
+import { loaderData, loaderData$, LoaderDataRoute } from './loader-data';
+import { loaderDeps, loaderDeps$, LoaderDepsRoute } from './loader-deps';
+import { match, match$, MatchRoute } from './match';
+import { params, params$, ParamsRoute } from './params';
 import { createRoute, Route } from './route';
-import { RouteContextRoute } from './route-context';
-import { search, SearchRoute } from './search';
+import {
+  routeContext,
+  routeContext$,
+  RouteContextRoute,
+} from './route-context';
+import { search, search$, SearchRoute } from './search';
 
 export function createFileRoute<
   TFilePath extends keyof FileRoutesByPath,
@@ -163,33 +167,35 @@ export class LazyRoute<TRoute extends AnyRoute> {
     this.options = opts;
   }
 
-  match: MatchRoute<TRoute['id']> = (opts) => {
-    return match({ ...opts, from: this.options.id } as any) as any;
-  };
+  match$: MatchRoute<true, TRoute['id']> = (opts) =>
+    match$({ ...opts, from: this.options.id } as any) as any;
+  match: MatchRoute<false, TRoute['id']> = (opts) =>
+    match({ ...opts, from: this.options.id } as any) as any;
 
-  routeContext: RouteContextRoute<TRoute['id']> = (opts) => {
-    return match({
-      ...opts,
-      from: this.options.id,
-      select: (d: any) => (opts?.select ? opts.select(d.context) : d.context),
-    }) as any;
-  };
+  routeContext$: RouteContextRoute<true, TRoute['id']> = (opts) =>
+    routeContext$({ ...opts, from: this.options.id } as any);
+  routeContext: RouteContextRoute<false, TRoute['id']> = (opts) =>
+    routeContext({ ...opts, from: this.options.id } as any);
 
-  search: SearchRoute<TRoute['id']> = (opts) => {
-    return search({ ...opts, from: this.options.id } as any) as any;
-  };
+  search$: SearchRoute<true, TRoute['id']> = (opts) =>
+    search$({ ...opts, from: this.options.id } as any) as any;
+  search: SearchRoute<false, TRoute['id']> = (opts) =>
+    search({ ...opts, from: this.options.id } as any) as any;
 
-  params: ParamsRoute<TRoute['id']> = (opts) => {
-    return params({ ...opts, from: this.options.id } as any) as any;
-  };
+  params$: ParamsRoute<true, TRoute['id']> = (opts) =>
+    params$({ ...opts, from: this.options.id } as any) as any;
+  params: ParamsRoute<false, TRoute['id']> = (opts) =>
+    params({ ...opts, from: this.options.id } as any) as any;
 
-  loaderDeps: LoaderDepsRoute<TRoute['id']> = (opts) => {
-    return loaderDeps({ ...opts, from: this.options.id } as any);
-  };
+  loaderDeps$: LoaderDepsRoute<true, TRoute['id']> = (opts) =>
+    loaderDeps$({ ...opts, from: this.options.id } as any);
+  loaderDeps: LoaderDepsRoute<false, TRoute['id']> = (opts) =>
+    loaderDeps({ ...opts, from: this.options.id } as any);
 
-  loaderData: LoaderDataRoute<TRoute['id']> = (opts) => {
-    return loaderData({ ...opts, from: this.options.id } as any);
-  };
+  loaderData$: LoaderDataRoute<true, TRoute['id']> = (opts) =>
+    loaderData$({ ...opts, from: this.options.id } as any);
+  loaderData: LoaderDataRoute<false, TRoute['id']> = (opts) =>
+    loaderData({ ...opts, from: this.options.id } as any);
 }
 
 export function createLazyRoute<

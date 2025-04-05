@@ -1,6 +1,5 @@
 import {
-  ChangeDetectionStrategy,
-  Component,
+  Directive,
   effect,
   EnvironmentInjector,
   inject,
@@ -41,13 +40,9 @@ export type RouterRootOptions<
   >;
 };
 
-@Component({
+@Directive({
   selector: 'router-root,RouterRoot',
-  template: `
-    <matches />
-  `,
-  changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [Matches],
+  hostDirectives: [Matches],
 })
 export class RouterRoot<
   TRouter extends AnyRouter = RegisteredRouter,

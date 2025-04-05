@@ -1,18 +1,18 @@
 import {
   assertInInjectionContext,
-  computed,
   inject,
   Injector,
   runInInjectionContext,
-  Signal,
-  ValueEqualityFn,
+  type ValueEqualityFn,
 } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
 import {
-  RegisteredRouter,
-  RouterState,
-  shallow,
   type AnyRouter,
+  type RegisteredRouter,
+  type RouterState,
+  shallow,
 } from '@tanstack/router-core';
+import { distinctUntilChanged, map, Observable } from 'rxjs';
 import { injectRouterState } from './router';
 
 export type RouterStateResult<
@@ -28,6 +28,31 @@ export type RouterStateOptions<TRouter extends AnyRouter, TSelected> = {
   injector?: Injector;
 };
 
+export function routerState$<
+  TRouter extends AnyRouter = RegisteredRouter,
+  TSelected = unknown,
+>({
+  select,
+  injector,
+  equal = shallow,
+}: RouterStateOptions<TRouter, TSelected>) {
+  !injector && assertInInjectionContext(routerState$);
+
+  if (!injector) {
+    injector = inject(Injector);
+  }
+
+  return runInInjectionContext(injector, () => {
+    const rootRouterState = injectRouterState();
+    if (select)
+      return rootRouterState.pipe(
+        map((s) => select(s) as any),
+        distinctUntilChanged(equal)
+      );
+    return rootRouterState.pipe(distinctUntilChanged(equal) as any);
+  }) as Observable<RouterStateResult<TRouter, TSelected>>;
+}
+
 export function routerState<
   TRouter extends AnyRouter = RegisteredRouter,
   TSelected = unknown,
@@ -42,14 +67,7 @@ export function routerState<
     injector = inject(Injector);
   }
 
-  return runInInjectionContext(injector, () => {
-    const rootRouterState = injectRouterState();
-    return computed(
-      () => {
-        if (select) return select(rootRouterState());
-        return rootRouterState() as any;
-      },
-      { equal }
-    ) as Signal<RouterStateResult<TRouter, TSelected>>;
-  });
+  return runInInjectionContext(injector, () =>
+    toSignal(routerState$({ select, injector, equal }), { injector })
+  );
 }

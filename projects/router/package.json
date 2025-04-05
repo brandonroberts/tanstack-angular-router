@@ -1,6 +1,6 @@
 {
   "name": "tanstack-angular-router-experimental",
-  "version": "0.0.54",
+  "version": "0.0.55",
   "dependencies": {
     "@tanstack/angular-store": "^0.7.0",
     "@tanstack/history": "^1.114.29",
@@ -13,7 +13,8 @@
   },
   "peerDependencies": {
     "@angular/core": "^19.0.0",
-    "@angular/router": "^19.0.0"
+    "@angular/router": "^19.0.0",
+    "rxjs": "^7.0.0"
   },
   "sideEffects": false
 }

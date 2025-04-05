@@ -1,18 +1,15 @@
 import {
   afterNextRender,
   booleanAttribute,
-  computed,
   Directive,
   effect,
   ElementRef,
   inject,
-  Injector,
   input,
   NgZone,
   signal,
   untracked,
 } from '@angular/core';
-import { injectStore } from '@tanstack/angular-store';
 import { TanStackRouterDevtoolsCore } from '@tanstack/router-devtools-core';
 import { injectRouter } from './router';
 
@@ -24,7 +21,6 @@ export class RouterDevtools {
   private injectedRouter = injectRouter();
   private host = inject<ElementRef<HTMLDivElement>>(ElementRef);
   private ngZone = inject(NgZone);
-  private injector = inject(Injector);
 
   router = input(this.injectedRouter);
   initialIsOpen = input(undefined, { transform: booleanAttribute });
@@ -35,16 +31,12 @@ export class RouterDevtools {
   containerElement = input<string | HTMLElement>();
   position = input<'top-left' | 'top-right' | 'bottom-left' | 'bottom-right'>();
 
-  private activeRouterState = computed(
-    injectStore(this.router().__store, (s) => s, { injector: this.injector })
-  );
-
   private devtools = signal<TanStackRouterDevtoolsCore | null>(null);
 
   constructor() {
     afterNextRender(() => {
+      const router = untracked(this.router);
       const [
-        router,
         initialIsOpen,
         panelOptions,
         closeButtonOptions,
@@ -54,7 +46,6 @@ export class RouterDevtools {
         position,
         activeRouterState,
       ] = [
-        untracked(this.router),
         untracked(this.initialIsOpen),
         untracked(this.panelOptions),
         untracked(this.closeButtonOptions),
@@ -62,7 +53,7 @@ export class RouterDevtools {
         untracked(this.shadowDOMTarget),
         untracked(this.containerElement),
         untracked(this.position),
-        untracked(this.activeRouterState),
+        router.state,
       ];
 
       // initial devTools
@@ -87,12 +78,17 @@ export class RouterDevtools {
       this.ngZone.runOutsideAngular(() => devtools.setRouter(this.router()));
     });
 
-    effect(() => {
+    effect((onCleanup) => {
       const devtools = this.devtools();
       if (!devtools) return;
-      this.ngZone.runOutsideAngular(() =>
-        devtools.setRouterState(this.activeRouterState())
-      );
+      this.ngZone.runOutsideAngular(() => {
+        const unsub = untracked(this.router).__store.subscribe(
+          ({ currentVal }) => {
+            devtools.setRouterState(currentVal);
+          }
+        );
+        onCleanup(() => unsub());
+      });
     });
 
     effect(() => {
