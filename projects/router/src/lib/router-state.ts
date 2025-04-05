@@ -3,6 +3,7 @@ import {
   inject,
   Injector,
   runInInjectionContext,
+  Signal,
   type ValueEqualityFn,
 } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
@@ -69,5 +70,5 @@ export function routerState<
 
   return runInInjectionContext(injector, () =>
     toSignal(routerState$({ select, injector, equal }), { injector })
-  );
+  ) as Signal<RouterStateResult<TRouter, TSelected>>;
 }

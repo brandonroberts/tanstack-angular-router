@@ -8,6 +8,7 @@ import {
   signal,
   untracked,
 } from '@angular/core';
+import { toObservable, toSignal } from '@angular/core/rxjs-interop';
 import {
   AnyRouter,
   Constrain,
@@ -22,9 +23,10 @@ import {
   RegisteredRouter,
   removeTrailingSlash,
 } from '@tanstack/router-core';
+import { combineLatest, map } from 'rxjs';
 import { matches } from './matches';
 import { injectRouter } from './router';
-import { routerState } from './router-state';
+import { routerState, routerState$ } from './router-state';
 
 @Directive({
   selector: 'a[link]',
@@ -168,55 +170,63 @@ export class Link {
   });
 
   transitioning = signal(false);
-  isActive = routerState({
-    select: (s) => {
-      const [next, exact] = [this.next(), this.exactActiveOptions()];
-      if (!next) return false;
 
-      if (exact) {
-        const testExact = exactPathTest(
-          s.location.pathname,
-          next.pathname,
-          this.router.basepath
-        );
-        if (!testExact) return false;
-      } else {
-        const currentPathSplit = removeTrailingSlash(
-          s.location.pathname,
-          this.router.basepath
-        ).split('/');
-        const nextPathSplit = removeTrailingSlash(
-          next.pathname,
-          this.router.basepath
-        ).split('/');
-        const pathIsFuzzyEqual = nextPathSplit.every(
-          (d, i) => d === currentPathSplit[i]
-        );
-        if (!pathIsFuzzyEqual) {
-          return false;
+  isActive = toSignal(
+    combineLatest([
+      toObservable(this.next),
+      toObservable(this.exactActiveOptions),
+      toObservable(this.includeSearchActiveOptions),
+      toObservable(this.includeHashActiveOptions),
+      routerState$({ select: (s) => s.location }),
+    ]).pipe(
+      map(
+        ([next, exact, includeSearchOptions, includeHashOptions, location]) => {
+          if (!next) return false;
+          if (exact) {
+            const testExact = exactPathTest(
+              location.pathname,
+              next.pathname,
+              this.router.basepath
+            );
+            if (!testExact) return false;
+          } else {
+            const currentPathSplit = removeTrailingSlash(
+              location.pathname,
+              this.router.basepath
+            ).split('/');
+            const nextPathSplit = removeTrailingSlash(
+              next.pathname,
+              this.router.basepath
+            ).split('/');
+            const pathIsFuzzyEqual = nextPathSplit.every(
+              (d, i) => d === currentPathSplit[i]
+            );
+            if (!pathIsFuzzyEqual) {
+              return false;
+            }
+          }
+
+          const includeSearch = includeSearchOptions ?? true;
+          if (includeSearch) {
+            const searchTest = deepEqual(location.search, next.search, {
+              partial: !exact,
+              ignoreUndefined: !(includeSearchOptions ?? true),
+            });
+            if (!searchTest) {
+              return false;
+            }
+          }
+
+          const includeHash = includeHashOptions ?? true;
+          if (includeHash) {
+            return location.hash === next.hash;
+          }
+
+          return true;
         }
-      }
-
-      const includeSearch = this.includeSearchActiveOptions() ?? true;
-
-      if (includeSearch) {
-        const searchTest = deepEqual(s.location.search, next.search, {
-          partial: !exact,
-          ignoreUndefined: !this.explicitUndefinedActiveOptions(),
-        });
-        if (!searchTest) {
-          return false;
-        }
-      }
-
-      const includeHash = this.includeHashActiveOptions();
-      if (includeHash) {
-        return s.location.hash === next.hash;
-      }
-
-      return true;
-    },
-  });
+      )
+    )
+  );
 
   constructor() {
     effect(() => {
