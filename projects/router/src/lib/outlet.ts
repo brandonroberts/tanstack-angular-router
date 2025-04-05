@@ -391,7 +391,6 @@ export class Outlet {
   private vcr = inject(ViewContainerRef);
   private isDevMode = isDevMode();
 
-  protected readonly rootRouteId = rootRouteId;
   protected readonly defaultPendingComponent =
     this.router.options.defaultPendingComponent?.();
 
@@ -415,6 +414,7 @@ export class Outlet {
     this.closestMatch.matchId$,
   ]).pipe(
     map(([matches, closestMatchId]) => {
+      console.log(this.vcr.element.nativeElement);
       const parentMatch = matches.find((d) => d.id === closestMatchId);
       if (!parentMatch) {
         warning(

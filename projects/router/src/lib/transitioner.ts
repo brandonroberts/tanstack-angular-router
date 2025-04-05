@@ -166,6 +166,7 @@ export class Transitioner implements OnInit {
         const tryLoad = async () => {
           try {
             await this.router.load();
+            this.router.__store.setState((s) => ({ ...s, status: 'idle' }));
           } catch (err) {
             console.error(err);
           }
