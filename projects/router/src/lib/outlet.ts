@@ -88,6 +88,9 @@ export class OnRendered {
   template: ``,
   hostDirectives: [OnRendered],
   changeDetection: ChangeDetectionStrategy.OnPush,
+  host: {
+    '[data-matchId]': 'matchId()',
+  },
 })
 export class RouteMatch {
   matchId = input.required<string>();
