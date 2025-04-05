@@ -24,7 +24,8 @@ import {
   removeTrailingSlash,
 } from '@tanstack/router-core';
 import { combineLatest, map } from 'rxjs';
-import { matches } from './matches';
+import { distinctUntilRefChanged } from './distinct-until-ref-changed';
+import { matches$ } from './matches';
 import { injectRouter } from './router';
 import { routerState, routerState$ } from './router-state';
 
@@ -122,10 +123,15 @@ export class Link {
 
   // when `from` is not supplied, use the leaf route of the current matches as the `from` location
   // so relative routing works as expected
-  private from = matches({
-    select: (matches) =>
-      this.userFrom() ?? matches[matches.length - 1]?.fullPath,
-  });
+  private from = toSignal(
+    combineLatest([
+      toObservable(this.userFrom),
+      matches$({ select: (matches) => matches[matches.length - 1]?.fullPath }),
+    ]).pipe(
+      map(([userFrom, from]) => userFrom ?? from),
+      distinctUntilRefChanged()
+    )
+  );
 
   private navigateOptions = computed(() => {
     return { ...this.linkOptions(), from: this.from() };
