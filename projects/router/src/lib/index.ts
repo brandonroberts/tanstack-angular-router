@@ -294,6 +294,7 @@ export { routerState, routerState$ } from './router-state';
 
 export { isNotFound, notFound } from '@tanstack/router-core';
 export type { NotFoundError } from '@tanstack/router-core';
+export { DefaultError } from './default-error';
 export { DefaultNotFound } from './default-not-found';
 
 export type { ValidateLinkOptions, ValidateLinkOptionsArray } from './link';
