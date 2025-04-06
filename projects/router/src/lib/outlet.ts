@@ -305,7 +305,6 @@ export class RouteMatch {
             const successComponent = route.options.component?.() || Outlet;
 
             if (this.cmp === successComponent) {
-              this.cmpRef?.changeDetectorRef.markForCheck();
               return of({ clearView: false } as const);
             }
 
@@ -475,6 +474,7 @@ export class Outlet {
 
             if (!notFoundCmp) return null;
 
+            this.renderedId = route.id + '-not-found';
             const injector = this.router.getRouteInjector(
               route.id + '-not-found',
               this.vcr.injector,
