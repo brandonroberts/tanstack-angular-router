@@ -251,6 +251,8 @@ export {
   createLazyRoute,
 } from './file-route';
 export {
+  ERROR_COMPONENT_CONTEXT,
+  NOT_FOUND_COMPONENT_CONTEXT,
   NotFoundRoute,
   RootRoute,
   Route,
