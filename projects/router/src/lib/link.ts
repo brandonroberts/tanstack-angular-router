@@ -38,7 +38,7 @@ import { routerState, routerState$ } from './router-state';
     '(touchstart)': 'handleClick($event)',
     '(mouseenter)': 'handleMouseEnter($event)',
     '(mouseleave)': 'handleMouseLeave()',
-    '[class]': '[isActive() ? activeClass() : ""]',
+    '[class]': 'activeClass()',
     '[attr.data-active]': 'isActive()',
     '[attr.data-type]': 'type()',
     '[attr.data-transitioning]':
@@ -104,9 +104,6 @@ export class Link {
   );
   private includeSearchActiveOptions = computed(
     () => this.activeOptions().includeSearch
-  );
-  protected activeClass = computed(
-    () => this.activeOptions().class || 'active'
   );
 
   protected type = computed(() => {
@@ -230,6 +227,9 @@ export class Link {
         }
       )
     )
+  );
+  protected activeClass = computed(() =>
+    this.isActive() ? this.activeOptions().class || 'active' : ''
   );
 
   constructor() {
