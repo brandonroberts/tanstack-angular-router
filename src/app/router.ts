@@ -1,4 +1,4 @@
-import { TypedRouter } from 'tanstack-angular-router-experimental';
+import { createRouter } from 'tanstack-angular-router-experimental';
 
 import { AboutRoute } from './about/about.route';
 import { Route as ChildRoute } from './child';
@@ -16,11 +16,11 @@ export const routeTree = RootRoute.addChildren([
   LoginRoute,
 ]);
 
-export type router = TypedRouter<typeof routeTree>;
+export const router = createRouter({ routeTree });
 
 declare module '@tanstack/router-core' {
   interface Register {
     // This infers the type of our router and registers it across your entire project
-    router: router;
+    router: typeof router;
   }
 }
