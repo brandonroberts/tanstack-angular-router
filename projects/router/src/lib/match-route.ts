@@ -1,8 +1,7 @@
 import {
   assertInInjectionContext,
-  ChangeDetectionStrategy,
-  Component,
   computed,
+  Directive,
   inject,
   Injector,
   input,
@@ -104,11 +103,7 @@ export type MakeMatchRouteOptions<
   TMaskTo extends string = '',
 > = MatchRouteOptions<TRouter, TFrom, TTo, TMaskFrom, TMaskTo>;
 
-@Component({
-  selector: 'match-route,MatchRoute',
-  template: '<ng-content />',
-  changeDetection: ChangeDetectionStrategy.OnPush,
-})
+@Directive({ selector: '[match]', exportAs: 'matchRoute' })
 export class MatchRoute<
   TRouter extends AnyRouter = RegisteredRouter,
   const TFrom extends string = string,
