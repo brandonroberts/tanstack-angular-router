@@ -116,8 +116,9 @@ export class MatchRoute<
   const TMaskFrom extends string = TFrom,
   const TMaskTo extends string = '',
 > {
-  matchRoute =
-    input<MakeMatchRouteOptions<TRouter, TFrom, TTo, TMaskFrom, TMaskTo>>();
+  matchRoute = input<
+    Partial<MakeMatchRouteOptions<TRouter, TFrom, TTo, TMaskFrom, TMaskTo>>
+  >({});
 
   private status$ = routerState$({ select: (s) => s.status });
   private matchRouteFn = matchRoute$();
